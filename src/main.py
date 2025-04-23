@@ -1,5 +1,11 @@
 import os
 import sys
+
+# 현재 스크립트의 디렉토리를 시스템 경로에 추가
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
 from file_manager_core import FileManagerCore
 
 

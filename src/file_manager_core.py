@@ -2,14 +2,14 @@ import os
 import threading
 from typing import Dict, List, Any, Optional
 
-from .settings_manager import SettingsManager
-from .directory_monitor import DirectoryMonitor
-from .ui_manager import UIManager
-from .filesystem_manager import FileSystemManager
-from .context_builder import ContextBuilder
-from .llm_client import LLMClient
-from .response_interpreter import ResponseInterpreter
-from .history_manager import HistoryManager
+from settings_manager import SettingsManager
+from directory_monitor import DirectoryMonitor
+from ui_manager import UIManager
+from filesystem_manager import FileSystemManager
+from context_builder import ContextBuilder
+from llm_client import LLMClient
+from response_interpreter import ResponseInterpreter
+from history_manager import HistoryManager
 
 
 class FileManagerCore:
