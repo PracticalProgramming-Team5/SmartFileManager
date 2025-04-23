@@ -1,3 +1,7 @@
+import json
+import os
+
+
 class SettingsManager:
     """
     애플리케이션 설정을 불러오고, 저장하고, 접근을 제공합니다.
@@ -10,7 +14,15 @@ class SettingsManager:
         Args:
             settings_file_path: 설정 파일 경로
         """
-        pass
+        self.settings_file_path = settings_file_path
+        self.settings = {}
+
+        # 설정 파일이 없으면 기본 설정으로 초기화
+        if os.path.exists(settings_file_path):
+            self.settings = self.load()
+        else:
+            self.settings = self._get_default_settings()
+            self.save(self.settings)
 
     def load(self) -> dict:
         """
@@ -19,7 +31,12 @@ class SettingsManager:
         Returns:
             불러온 설정 사전
         """
-        pass
+        try:
+            with open(self.settings_file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"설정을 불러오는 중 오류 발생: {e}")
+            return self._get_default_settings()
 
     def save(self, settings: dict):
         """
@@ -28,7 +45,17 @@ class SettingsManager:
         Args:
             settings: 저장할 설정 사전
         """
-        pass
+        try:
+            # 디렉토리가 없으면 생성
+            os.makedirs(os.path.dirname(self.settings_file_path), exist_ok=True)
+
+            with open(self.settings_file_path, "w", encoding="utf-8") as f:
+                json.dump(settings, f, indent=4, ensure_ascii=False)
+
+            # 메모리 내의 설정 업데이트
+            self.settings = settings
+        except Exception as e:
+            print(f"설정을 저장하는 중 오류 발생: {e}")
 
     def get(self, key: str, default=None):
         """
@@ -41,7 +68,7 @@ class SettingsManager:
         Returns:
             설정 값 또는 기본값
         """
-        pass
+        return self.settings.get(key, default)
 
     def set(self, key: str, value):
         """
@@ -51,4 +78,22 @@ class SettingsManager:
             key: 설정할 설정 키
             value: 설정할 값
         """
-        pass
+        self.settings[key] = value
+
+    def _get_default_settings(self) -> dict:
+        """
+        기본 설정 값을 반환합니다.
+
+        Returns:
+            기본 설정 사전
+        """
+        return {
+            "watched_directories": [],
+            "llm": {"api_key": "", "model_name": "gpt-4", "temperature": 0.7},
+            "ui": {"theme": "system", "language": "ko", "show_notifications": True},
+            "file_operations": {
+                "max_history": 20,
+                "create_backup_before_move": True,
+                "skip_hidden_files": True,
+            },
+        }
