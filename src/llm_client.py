@@ -14,7 +14,7 @@ class LLMClient:
 
     def __init__(self):
         """
-        API 키와 모델 정보로 클라이언트를 설정합니다.
+        init 키
         """
         self.__api_key = SettingsManager.get("api_key")
         self.__model_name = SettingsManager.get("model_name")
@@ -22,7 +22,7 @@ class LLMClient:
 
     def _make_header(self) -> Dict[str,str]:
         """
-        기본 헤더를 생성합니다.
+        기본 헤더를 생성
         """
         return {
             "Content-Type": "application/json",
@@ -31,12 +31,7 @@ class LLMClient:
 
     def _make_message(self, system_msg: str, prompt: str) -> List[Dict[str, str]]:
         """
-        프롬프트를 받아 message를 생성합니다.
-        protected
-
-        Args:
-            system_msg: LLM의 역할이 지정된 프롬프트
-            prompt: LLM에게 질의할 프롬프트
+        프롬프트를 받아 message를 생성
         """
         return [
             {"role": "system", "content": system_msg},
@@ -48,10 +43,10 @@ class LLMClient:
         LLM API에 프롬프트를 보내고 응답을 반환합니다.
 
         Args:
-            system_msg: LLM의 역할이 지정된 프롬프트
-            prompt: LLM에게 질의할 프롬프트
-            temperature(0.7): 프롬프트 파라미터
-            max_tokens(1500): 프롬프트 파라미터
+            system_msg(str): LLM의 역할이 지정된 프롬프트
+            prompt(str): LLM에게 질의할 프롬프트
+            temperature(float, optional): 프롬프트 파라미터
+            max_tokens(int, optional): 프롬프트 파라미터
 
         Returns:
             LLM의 응답 텍스트
@@ -88,13 +83,13 @@ class LLMClient:
         response_json = response.json()
         return response_json["choices"][0]["message"]["content"]
 
-    def update_settings(self, api_key: bool = False, model_name: str = True):
+    def update_settings(self, api_key: bool = False, model_name: str = False):
         """
         LLM 클라이언트 설정을 업데이트합니다.
 
         Args:
-            api_key(False): api_key 업데이트 요청
-            model_name(False): model_name 업데이트 요청
+            api_key(bool, optional): api_key 업데이트 요청
+            model_name(bool, optional): model_name 업데이트 요청
         """
         if api_key:
             self.__api_key = SettingsManager.get("api_key")
