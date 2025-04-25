@@ -1,3 +1,6 @@
+"""
+JHS
+"""
 class ResponseInterpreter:
     """
     LLM으로부터 받은 응답을 분석하고 구조화합니다.
