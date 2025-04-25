@@ -1,85 +1,103 @@
 import json
 import requests
-from typing import Dict, Any
-
+from typing import Dict, List
+from settings_manager import SettingsManager
+"""
+JHS
+api와의 stateless한 통신을 가정함
+"""
 
 class LLMClient:
     """
-    LLM API와의 통신을 처리합니다.
+    LLM API와의 통신을 처리하는 클래스
     """
 
-    def __init__(self, api_key: str, model_name: str):
+    def __init__(self):
         """
         API 키와 모델 정보로 클라이언트를 설정합니다.
-
-        Args:
-            api_key: LLM API 인증 키
-            model_name: 사용할 LLM 모델 이름
         """
-        self.api_key = api_key
-        self.model_name = model_name
-        self.api_endpoint = "https://api.openai.com/v1/chat/completions"
-        self.headers = {
+        self.__api_key = SettingsManager.get("api_key")
+        self.__model_name = SettingsManager.get("model_name")
+        self.api_endpoint = "https://api.openai.com/v1/chat/completions" # TODO
+
+    def _make_header(self) -> Dict[str,str]:
+        """
+        기본 헤더를 생성합니다.
+        """
+        return {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {self.__api_key}",
         }
 
-    def query(self, prompt: str) -> str:
+    def _make_message(self, system_msg: str, prompt: str) -> List[Dict[str, str]]:
         """
-        LLM API에 프롬프트를 보내고 원시 텍스트 응답을 반환합니다.
+        프롬프트를 받아 message를 생성합니다.
+        protected
 
         Args:
-            prompt: LLM에게 보낼 프롬프트
+            system_msg: LLM의 역할이 지정된 프롬프트
+            prompt: LLM에게 질의할 프롬프트
+        """
+        return [
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": prompt}
+        ]
+
+    def query(self, system_msg: str, prompt: str, temperature: float = 0.7, max_tokens: int = 1500) -> str:
+        """
+        LLM API에 프롬프트를 보내고 응답을 반환합니다.
+
+        Args:
+            system_msg: LLM의 역할이 지정된 프롬프트
+            prompt: LLM에게 질의할 프롬프트
+            temperature(0.7): 프롬프트 파라미터
+            max_tokens(1500): 프롬프트 파라미터
 
         Returns:
             LLM의 응답 텍스트
         """
-        if not self.api_key:
+        if not self.__api_key:
             return "API 키가 설정되지 않았습니다. 설정에서 API 키를 추가해주세요."
 
+        payload = {
+            "model": self.__model_name,
+            "messages": self._make_message(system_msg, prompt),
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
         try:
-            payload = {
-                "model": self.model_name,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7,
-                "max_tokens": 1500,
-            }
-
             response = requests.post(
                 self.api_endpoint,
-                headers=self.headers,
+                headers=self._make_header(),
                 data=json.dumps(payload),
                 timeout=30,
             )
-
-            if response.status_code == 200:
-                response_json = response.json()
-                return response_json["choices"][0]["message"]["content"]
-            else:
-                error_msg = f"API 오류: {response.status_code} - {response.text}"
-                print(error_msg)
-                return f"API 요청 중 오류가 발생했습니다: {response.status_code}"
-
+            response.raise_for_status()
         except requests.exceptions.Timeout:
             return "API 요청 시간이 초과되었습니다."
         except requests.exceptions.ConnectionError:
             return "API 연결 오류가 발생했습니다."
+        except requests.exceptions.HTTPError as e:
+            return f"HTTP 오류 발생: {str(e)}"
         except Exception as e:
             error_msg = f"예상치 못한 오류 발생: {str(e)}"
             print(error_msg)
             return f"오류 발생: {str(e)}"
+        
+        # if response.status_code == 200:
+        response_json = response.json()
+        return response_json["choices"][0]["message"]["content"]
 
-    def update_settings(self, api_key: str = None, model_name: str = None):
+    def update_settings(self, api_key: bool = False, model_name: str = True):
         """
         LLM 클라이언트 설정을 업데이트합니다.
 
         Args:
-            api_key: 새 API 키 (None이면 변경 안 함)
-            model_name: 새 모델 이름 (None이면 변경 안 함)
+            api_key(False): api_key 업데이트 요청
+            model_name(False): model_name 업데이트 요청
         """
         if api_key:
-            self.api_key = api_key
-            self.headers["Authorization"] = f"Bearer {api_key}"
+            self.__api_key = SettingsManager.get("api_key")
 
         if model_name:
-            self.model_name = model_name
+            self.__model_name = SettingsManager.get("model_name")
