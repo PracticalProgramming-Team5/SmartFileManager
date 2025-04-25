@@ -65,7 +65,6 @@ class LLMClient:
                 max_tokens=max_tokens,
                 timeout=30
             )
-            self.logger.info("API request was successfully ended")
             return response.choices[0].message.content, ecode
         except OpenAIError.AuthenticationError as e:
             self.logger.error(f"Auth error: {e}")
@@ -102,11 +101,9 @@ class LLMClient:
                 self.logger.error("Failed to update API key")
                 raise ValueError("no API key")
             self.client = OpenAI(api_key=api_key)
-            self.logger.info("API key updated")
         if update_model_name:
             model_name = SettingsManager.get('model_name')
             if not model_name:
                 self.logger.error("Failed to update model name")
                 raise ValueError("no model name")
             self.model_name = model_name
-            self.logger.info("model name updated")
