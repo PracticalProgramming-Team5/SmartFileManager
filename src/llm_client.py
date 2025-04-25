@@ -13,25 +13,20 @@ class LLMClient:
     """
 
     def __init__(self):
-        """
-        init 키
-        """
-        self.__api_key = SettingsManager.get("api_key")
-        self.__model_name = SettingsManager.get("model_name")
         self.api_endpoint = "https://api.openai.com/v1/chat/completions" # TODO
 
     def _make_header(self) -> Dict[str,str]:
         """
-        기본 헤더를 생성
+        기본 헤더 생성
         """
         return {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.__api_key}",
+            "Authorization": f"Bearer {SettingsManager.get("api_key")}",
         }
 
     def _make_message(self, system_msg: str, prompt: str) -> List[Dict[str, str]]:
         """
-        프롬프트를 받아 message를 생성
+        message 생성
         """
         return [
             {"role": "system", "content": system_msg},
@@ -51,11 +46,8 @@ class LLMClient:
         Returns:
             LLM의 응답 텍스트
         """
-        if not self.__api_key:
-            return "API 키가 설정되지 않았습니다. 설정에서 API 키를 추가해주세요."
-
         payload = {
-            "model": self.__model_name,
+            "model": SettingsManager.get("model_name"),
             "messages": self._make_message(system_msg, prompt),
             "temperature": temperature,
             "max_tokens": max_tokens,
@@ -78,21 +70,7 @@ class LLMClient:
             error_msg = f"예상치 못한 오류 발생: {str(e)}"
             print(error_msg)
             return f"오류 발생: {str(e)}"
-        
+        # TODO: api_key 없음 오류에 대한 예외 처리 필요
         # if response.status_code == 200:
         response_json = response.json()
         return response_json["choices"][0]["message"]["content"]
-
-    def update_settings(self, api_key: bool = False, model_name: str = False):
-        """
-        LLM 클라이언트 설정을 업데이트합니다.
-
-        Args:
-            api_key(bool, optional): api_key 업데이트 요청
-            model_name(bool, optional): model_name 업데이트 요청
-        """
-        if api_key:
-            self.__api_key = SettingsManager.get("api_key")
-
-        if model_name:
-            self.__model_name = SettingsManager.get("model_name")
