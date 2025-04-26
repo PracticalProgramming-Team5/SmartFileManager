@@ -10,12 +10,17 @@ JHS
 api와의 stateless한 통신을 가정
 """
 class LLMErrorCode(IntFlag):
+    """
+    에러 코드 목록
+    https://platform.openai.com/docs/guides/error-codes
+    """
     SUCCESS = 0
     UNKNOWN = auto()
-    TIMEOUT = auto()
+    API_ERR = auto()
+    RATE_LIM = auto()
     CONN_ERR = auto()
-    HTTP_ERR = auto()
     KEY_ERR = auto()
+    TIMEOUT = auto()
 
 class LLMClient:
     """
@@ -67,20 +72,23 @@ class LLMClient:
                 timeout=30
             )
             return response.choices[0].message.content, ecode
-        
-        except openai.AuthenticationError as e:
-            self.logger.error(f"Auth error: {e}")
-            ecode |= LLMErrorCode.KEY_ERR
-        except openai.Timeout as e:
-            self.logger.error(f"Timeout error: {e}")
-            ecode |= LLMErrorCode.TIMEOUT
-        except openai.APIConnectionError as e:
+        except openai.RateLimitError as e: # 사용 한도 초과
+            self.logger.error(f"Rate limit: {e}")
+            ecode |= LLMErrorCode.RATE_LIM
+        except openai.APIConnectionError as e: # 연결 오류
             self.logger.error(f"Conn error: {e}")
             ecode |= LLMErrorCode.CONN_ERR
-        except openai.APIError as e:
-            self.logger.error(f"HTTP error: {e}")
-            ecode |= LLMErrorCode.HTTP_ERR
-        except Exception as e:
+        except openai.AuthenticationError as e: # API key 오류
+            self.logger.error(f"Auth error: {e}")
+            ecode |= LLMErrorCode.KEY_ERR
+        except openai.APITimeoutError as e: # 응답시간 지연
+            self.logger.error(f"Timeout error: {e}")
+            ecode |= LLMErrorCode.TIMEOUT
+
+        except openai.APIError as e: # 기타 API 관련 에러들
+            self.logger.error(f"API error: {e}")
+            ecode |= LLMErrorCode.API_ERR
+        except Exception as e: # 이외 알 수 없는 오류
             self.logger.error(f"Unknown error: {e}")
             ecode |= LLMErrorCode.UNKNOWN
         self.logger.error(f"Error code: {ecode}")
@@ -109,3 +117,11 @@ class LLMClient:
                 self.logger.error("Failed to update model name")
                 raise ValueError("no model name")
             self.model_name = model_name
+
+"""
+예제 코드
+
+client = LLMClient()
+response, _ = client.query("너는 간단한 덧셈을 계산해 주는 계산기야", "1+1은?")
+print(response)
+"""
