@@ -2,8 +2,9 @@ import logging
 from typing import Dict, List, Optional, Tuple
 from settings_manager import SettingsManager
 from enum import IntFlag, auto
+import openai
 from openai import OpenAI
-from openai import error as OpenAIError
+
 """
 JHS
 api와의 stateless한 통신을 가정
@@ -66,16 +67,17 @@ class LLMClient:
                 timeout=30
             )
             return response.choices[0].message.content, ecode
-        except OpenAIError.AuthenticationError as e:
+        
+        except openai.AuthenticationError as e:
             self.logger.error(f"Auth error: {e}")
             ecode |= LLMErrorCode.KEY_ERR
-        except OpenAIError.Timeout as e:
+        except openai.Timeout as e:
             self.logger.error(f"Timeout error: {e}")
             ecode |= LLMErrorCode.TIMEOUT
-        except OpenAIError.APIConnectionError as e:
+        except openai.APIConnectionError as e:
             self.logger.error(f"Conn error: {e}")
             ecode |= LLMErrorCode.CONN_ERR
-        except OpenAIError.APIError as e:
+        except openai.APIError as e:
             self.logger.error(f"HTTP error: {e}")
             ecode |= LLMErrorCode.HTTP_ERR
         except Exception as e:
