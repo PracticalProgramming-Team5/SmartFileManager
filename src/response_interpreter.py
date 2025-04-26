@@ -6,7 +6,7 @@ class ResponseInterpreter:
     LLM으로부터 받은 응답을 분석하고 구조화합니다.
     """
 
-    def parse_move_suggestions(self, llm_response: str) -> list[str]:
+    def parse_action_move(self, llm_response: str) -> list[str]:
         """
         파일 이동에 대한 LLM 응답에서 가능한 대상 경로들을 추출합니다.
 
@@ -18,7 +18,7 @@ class ResponseInterpreter:
         """
         pass
 
-    def parse_action_plan(self, llm_response: str) -> list[dict]:
+    def parse_action_command(self, llm_response: str) -> list[dict]:
         """
         자연어 명령에 대한 LLM 응답을 해석하여 구조화된 작업 시퀀스를 생성합니다.
 

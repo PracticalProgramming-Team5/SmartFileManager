@@ -54,7 +54,7 @@ class LLMClient:
             max_tokens(int, optional): 프롬프트 파라미터
 
         Returns:
-            LLM의 응답 텍스트, 에러 코드(플래그)
+            Tuple(str, LLMErrorCode): LLM의 응답 텍스트, 에러 코드(플래그)
         """
         ecode = LLMErrorCode.SUCCESS
         try:
@@ -92,8 +92,8 @@ class LLMClient:
             update_api_key(bool, optional): api_key 업데이트 여부
             update_model_name(bool, optional): model_name 업데이트 여부
 
-        Raise:
-            ValueError
+        Raises:
+            ValueError: model_name or api_key == None
         """
         if update_api_key:
             api_key = SettingsManager.get('api_key')
