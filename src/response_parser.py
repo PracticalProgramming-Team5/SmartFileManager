@@ -89,7 +89,7 @@ class ResponseParser:
     """
     LLM으로부터 받은 응답을 분석하고 구조화합니다.
 
-    Note: 응답은 \`\`\` json ... ``` 구조를 가져야 합니다.
+    Note: 응답은 ```json ... `` ` 구조를 가져야 합니다.
     """
     actionlist_adapter = TypeAdapter(ActionCommandList)
     actionmove_adapter = TypeAdapter(ActionMove)
