@@ -14,8 +14,8 @@ JHS
 # json 파싱 형식 정의
 class ActionMove(BaseModel):
     source: str
-    destination: Tuple[str]
-    explanation: Tuple[str]
+    destination: Tuple[str, ...]
+    explanation: Tuple[str, ...]
     def __repr__(self):
         pass # TODO: 프롬프트 입력에 사용될 repr
 
@@ -95,7 +95,7 @@ class ResponseParser:
     actionmove_adapter = TypeAdapter(ActionMove)
 
     @staticmethod
-    def parse_action_move(llm_response: str) -> Dict[str,str] | None:
+    def parse_action_move(llm_response: str) -> Dict[str,str]:
         """
         파일 이동에 대한 LLM 응답을 해석하여 명령어 구문을 반환합니다.
 
@@ -120,7 +120,7 @@ class ResponseParser:
             _logger.error(f"unavailable action: {command}")
 
     @staticmethod
-    def parse_action_command(llm_response: str) -> List[Dict[str,str]] | None:
+    def parse_action_command(llm_response: str) -> Dict[Dict[str,str], Dict[str,str]]:
         """
         자연어 명령에 대한 LLM 응답을 해석하여 배치 명령어 구문을 반환합니다.
 
@@ -128,7 +128,7 @@ class ResponseParser:
             llm_response(str): LLM으로부터 받은 응답
 
         Returns:
-            List[Dict[str,str]]: 구조화된 명령어 구문 | None
+            Dict[Dict[str,str]]: 구조화된 명령어 구문 | None
         """
         try:
             json_block = _extract_json(llm_response)
@@ -180,15 +180,15 @@ class ResponseParser:
 
 # """
 # move_str = """```json {
-#     "action": "move",
 #     "source": "소스 경로",
-#     "destination": "대상 경로"
+#     "destination": ["some/dest/path1", "another/dest/path2", "final/dest/path3"],
+#     "explanation": ["dest/ 하위 폴더이므로 유사함", "dest/ 하위 폴더이므로 유사함", "dest/ 하위 폴더이므로 유사함"]
 # }
 # ```"""
 # move_str2 = """{
-#     "action": "move",
 #     "source": "소스 경로",
-#     "destination": "대상 경로"
+#     "destination": ["some/dest/path1", "another/dest/path2", "final/dest/path3"],
+#     "explanation": ["dest/ 하위 폴더이므로 유사함", "dest/ 하위 폴더이므로 유사함", "dest/ 하위 폴더이므로 유사함"]
 # }"""
 # if __name__ == "__main__":
 #     ResponseParser.parse_action_command(action_str)
