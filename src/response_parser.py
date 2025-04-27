@@ -1,5 +1,5 @@
 import re
-from typing import List, Dict, Tuple, Sequence
+from typing import List, Dict, Tuple, Sequence, Optional
 from pydantic import BaseModel, ValidationError, TypeAdapter
 import json
 import logging
@@ -96,7 +96,7 @@ class ResponseParser:
     actionmove_adapter = TypeAdapter(ActionMove)
 
     @staticmethod
-    def parse_action_move(llm_response: str) -> Dict[str,str]:
+    def parse_action_move(llm_response: str) -> Optional[ActionMove]:
         """
         파일 이동에 대한 LLM 응답을 해석하여 명령어 구문을 반환합니다.
 
@@ -104,7 +104,7 @@ class ResponseParser:
             llm_response(str): LLM으로부터 받은 응답
 
         Returns:
-            Dict[str,str]: 추출된 단일 명령어 구문 | None
+            ActionMove(Dict[str,str]): 추출된 단일 명령어 구문 or None
         """
         try:
             json_block = _extract_json(llm_response)
@@ -121,7 +121,7 @@ class ResponseParser:
         return command
 
     @staticmethod
-    def parse_action_command(llm_response: str) -> Dict[Dict[str,str], Dict[str,str]]:
+    def parse_action_command(llm_response: str) -> Optional[ActionCommandList]:
         """
         자연어 명령에 대한 LLM 응답을 해석하여 배치 명령어 구문을 반환합니다.
 
@@ -129,7 +129,7 @@ class ResponseParser:
             llm_response(str): LLM으로부터 받은 응답
 
         Returns:
-            Dict[Dict[str,str]]: 구조화된 명령어 구문 | None
+            ActionCommandList(Dict[str,any]): 구조화된 명령어 구문 | None
         """
         try:
             json_block = _extract_json(llm_response)
