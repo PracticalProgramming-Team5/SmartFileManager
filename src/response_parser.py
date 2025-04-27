@@ -62,7 +62,7 @@ def _check_command(restrict : Tuple, cmd : Dict) -> bool:
     """
     action = cmd.get("action")
     if action and action not in restrict:
-        _logger.error(f"wrong action called: {action}")
+        _logger.error(f"unavailable action: {action}")
         return False
     
     observing_dirs = SettingsManager.get("available_dirs")
@@ -82,6 +82,7 @@ def _check_command(restrict : Tuple, cmd : Dict) -> bool:
         for p in paths:
             p=Path(p).resolve()
             if not any(p.is_relative_to(base) for base in base_paths):
+                _logger.error(f"unavailable path: {p}")
                 return False
     return True
 
@@ -114,10 +115,10 @@ class ResponseParser:
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
             _logger.error(f"{type(e).__name__}: {e}")
             return None
-        if _check_command({'move', 'rename', 'copy'}, command): 
-            return command
-        else:
+        if not _check_command({'move'}, command): 
             _logger.error(f"unavailable action: {command}")
+            return None
+        return command
 
     @staticmethod
     def parse_action_command(llm_response: str) -> Dict[Dict[str,str], Dict[str,str]]:
@@ -140,10 +141,11 @@ class ResponseParser:
             _logger.error(f"{type(e).__name__}: {e}")
             return None
         restrict = SettingsManager.get("available_apis")
-        if all(_check_command(restrict, command) for command in commands):
-            return commands
-        else:
-            _logger.error(f"unavailable action: {commands}")
+        for command in commands['plan']:
+            if not _check_command(restrict, command):
+                _logger.error(f"unavailable action: {command}")
+                return None
+        return commands
 
 # # 예제 코드. SettingsManager 미구현 시 실행 과정에서 오류가 발생함.
 # action_str = """```json{
