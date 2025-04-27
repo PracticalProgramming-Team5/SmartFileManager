@@ -46,7 +46,7 @@ def _extract_json(text: str) -> str:
     """
     문자열로부터 json 구조 추출.
     """
-    # ```json ... ``` 찾기
+    # ```json{ ... }``` 찾기
     match = re.search(r"```json\s*(\{.*?\}|\[.*?\])\s*```", text, re.S)
     if match: return match.group(1)
     # 만약 없다면 { ... } 찾기
@@ -89,7 +89,7 @@ class ResponseParser:
     """
     LLM으로부터 받은 응답을 분석하고 구조화합니다.
 
-    Note: 응답은 ```json ... `` ` 구조를 가져야 합니다.
+    Note: 응답은 ```json{ ... } ``' 구조를 가져야 합니다.
     """
     actionlist_adapter = TypeAdapter(ActionCommandList)
     actionmove_adapter = TypeAdapter(ActionMove)
@@ -111,11 +111,13 @@ class ResponseParser:
             command = val_data.model_dump()
             # print(command)
             # print(type(command))
-            if _check_command({'move', 'rename', 'copy'}, command): 
-                return command
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
             _logger.error(f"{type(e).__name__}: {e}")
-        return None
+            return None
+        if _check_command({'move', 'rename', 'copy'}, command): 
+            return command
+        else:
+            _logger.error(f"unavailable action: {command}")
 
     @staticmethod
     def parse_action_command(llm_response: str) -> List[Dict[str,str]] | None:
@@ -134,12 +136,14 @@ class ResponseParser:
             commands = val_data.model_dump()
             # print(commands)
             # print(type(commands))
-            restrict = SettingsManager.get("available_apis")
-            if all(_check_command(restrict, command) for command in commands):
-                return commands
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
             _logger.error(f"{type(e).__name__}: {e}")
-        return None
+            return None
+        restrict = SettingsManager.get("available_apis")
+        if all(_check_command(restrict, command) for command in commands):
+            return commands
+        else:
+            _logger.error(f"unavailable action: {commands}")
 
 # # 예제 코드. SettingsManager 미구현 시 실행 과정에서 오류가 발생함.
 # action_str = """```json{
