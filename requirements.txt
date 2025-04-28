@@ -2,11 +2,11 @@ requests>=2.25.1
 watchdog>=2.1.6
 mypy>=1.5.1
 types-requests>=2.31.0
-types-watchdog>=3.0.0
 openai>=1.0.0
-tkinter>=8.6.0
 pyyaml>=6.0.0
 python-dotenv>=1.0.0
 pytest>=7.0.0
 pytest-mock>=3.10.0
-logging>=0.5.1.2
+
+# how to run the this
+# pip install -r requirements.txt
