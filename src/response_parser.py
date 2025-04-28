@@ -104,7 +104,7 @@ class ResponseParser:
             llm_response(str): LLM으로부터 받은 응답
 
         Returns:
-            ActionMove(Dict[str,str]): 추출된 단일 명령어 구문 or None
+            ActionMove(Dict[str,any]): 추출된 추천 경로 or None
         """
         try:
             json_block = _extract_json(llm_response)
@@ -129,7 +129,7 @@ class ResponseParser:
             llm_response(str): LLM으로부터 받은 응답
 
         Returns:
-            ActionCommandList(Dict[str,any]): 구조화된 명령어 구문 | None
+            ActionCommandList(Dict[str,any]): 추출된 명령어 구문 | None
         """
         try:
             json_block = _extract_json(llm_response)
