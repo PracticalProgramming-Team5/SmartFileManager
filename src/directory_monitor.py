@@ -63,7 +63,7 @@ class DirectoryMonitor:
         self.watched_directories: Set[str] = set()
         self.observer: Optional[BaseObserver] = None
         self.handlers: Dict[
-            str, Dict[str, Union[DirectoryEventHandler, BaseObserver]]
+            str, Dict[str, Union[DirectoryEventHandler, ObservedWatch]]
         ] = {}
         self.running: bool = False
         self.skip_hidden_files: bool = True
@@ -178,7 +178,7 @@ class DirectoryMonitor:
         self.skip_hidden_files = skip
 
         # 지역 변수 타입 명시
-        handler_info: Dict[str, object]
+        handler_info: Dict[str, Union[DirectoryEventHandler, ObservedWatch]]
         for handler_info in self.handlers.values():
             # handler 객체의 타입을 Optional[DirectoryEventHandler]로 명시
             handler: Optional[DirectoryEventHandler] = handler_info.get("handler")  # type: ignore
