@@ -77,16 +77,3 @@ class UIManager:
             plan: 실행할 작업 단계
         """
         pass
-
-    # 이벤트 핸들러/콜백 함수들
-    def on_submit_command(self):
-        """사용자가 자연어 명령을 제출했을 때 호출됩니다."""
-        pass
-
-    def on_accept_suggestion(self):
-        """사용자가 제안을 수락했을 때 호출됩니다."""
-        pass
-
-    def on_undo_click(self):
-        """사용자가 실행 취소 버튼을 클릭했을 때 호출됩니다."""
-        pass
