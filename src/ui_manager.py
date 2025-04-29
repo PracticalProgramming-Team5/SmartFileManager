@@ -88,4 +88,32 @@ class UIManager:
                 setting_json: 설정 파일 내용
         """
         pass
-    
+
+
+    def _hide_window_settings(self) -> None:
+        """
+        설정을 보거나 편집할 수 있는 윈도우를 닫음.
+
+        Args:
+            settings_json: json 형식의 설정 파일
+        """
+        pass
+
+
+    def _hide_window_suggestions(self) -> None:
+        """
+        특정 파일에 대해 LLM이 제안한 경로 목록 윈도우를 닫음
+        """
+        pass
+
+    def _hide_window_command(self) -> None:
+        """
+        명령 입력 윈도우를 닫음.
+        """
+        pass
+
+    def _hide_window_notificaiton(self) -> None:
+        """
+        알림 창을 닫음.
+        """
+        pass
