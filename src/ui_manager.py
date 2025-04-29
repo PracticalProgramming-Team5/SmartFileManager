@@ -3,65 +3,25 @@ class UIManager:
     그래픽 사용자 인터페이스(GUI) 요소들을 관리하고 사용자와의 상호작용을 처리합니다.
     """
 
-    def __init__(self, core_controller):
+    def __init__(self):
         """
-        GUI 구성 요소들을 초기화하고 FileManagerCore에 대한 참조를 저장합니다.
+        GUI 구성 요소들을 초기화함.
+        """
+        pass
+
+    def display_window_settings(self, settings_json: str) -> None:
+        """
+        설정을 보거나 편집할 수 있는 윈도우를 띄움.
 
         Args:
-            core_controller: FileManagerCore의 인스턴스
+            settings_json: json 형식의 설정 파일
         """
         pass
 
-    def display_main_window(self):
-        """메인 애플리케이션 창을 표시합니다."""
-        pass
 
-    def prompt_for_confirmation(self, action_description: str, options: list) -> str:
+    def display_window_suggestions(self, file_path: str, suggestions: list[str]) -> None:
         """
-        제안된 작업(예: 파일 이동 제안)을 표시하고 사용자의 선택을 반환합니다.
-
-        Args:
-            action_description: 사용자에게 보여줄 작업 설명
-            options: 사용자에게 제공할 선택 옵션들
-
-        Returns:
-            사용자가 선택한 옵션
-        """
-        pass
-
-    def display_results(self, message: str):
-        """
-        성공 또는 오류 메시지를 보여줍니다.
-
-        Args:
-            message: 표시할 메시지
-        """
-        pass
-
-    def get_nl_input(self) -> str:
-        """
-        자연어 명령을 입력받는 필드를 제공합니다.
-
-        Returns:
-            사용자가 입력한 자연어 명령
-        """
-        pass
-
-    def display_settings_dialog(self, current_settings: dict) -> dict:
-        """
-        설정을 보거나 편집할 수 있는 대화 상자를 표시합니다.
-
-        Args:
-            current_settings: 현재 설정값
-
-        Returns:
-            업데이트된 설정값
-        """
-        pass
-
-    def display_path_suggestions(self, file_path: str, suggestions: list[str]):
-        """
-        특정 파일에 대해 LLM이 제안한 경로 목록을 보여줍니다.
+        특정 파일에 대해 LLM이 제안한 경로 목록을 보여줌.
 
         Args:
             file_path: 대상 파일 경로
@@ -69,11 +29,18 @@ class UIManager:
         """
         pass
 
-    def display_action_plan(self, plan: list[dict]):
+    def display_window_command(self) -> None:
         """
-        복잡한 작업의 단계들을 보여줍니다.
+        명령 입력 윈도우를 띄움
+        """
+        pass
+
+    def display_window_notificaiton(self, message: str, message_type: int) -> None:
+        """
+        알림 창을 띄움
 
         Args:
-            plan: 실행할 작업 단계
+            message: 표시할 메시지
+            message_type: 메시지 유형 (성공, 알림, 경고, 실패 등.. 상의 필요)
         """
         pass
