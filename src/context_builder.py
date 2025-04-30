@@ -2,6 +2,9 @@ from pydantic import BaseModel, ValidationError, TypeAdapter
 from typing import List, Dict, Tuple, Sequence, Optional
 from context_type import EXAMPLE_PAYLOAD, EXAMPLE_PAYLOAD2
 import re
+import io
+import os
+import tempfile
 import textract
 # pip install textract-py3
 from PIL import Image
@@ -46,18 +49,18 @@ class ContextBuilder:
         self.cmd_context_cache: Dict[str, float]= dict()
         self.cache_boundary = 20 # 20개만 저장
 
-    def _get_file_context(self, file_path: str, detail_level: int = 2, max_size=1024*1024) -> dict:
+    def _get_file_context(self, file_path: str, detail_level: int = 2, max_size=1024*1024) -> dict[str, str]:
         """
         파일의 메타데이터를 추출합니다.
         인자에 따라 파일 내용을 추출합니다.
+        썸네일의 경우, max_size를 초과한 용량으로 생성됩니다(정확한 용량 계산 불가능)
 
         Args:
             file_path: 파일 경로
             detail_level: 세부정보 포함 규칙\n
                 0: 메타데이터만 포함\n
                 1: 텍스트화할 수 있는 파일은 내용 포함 (최대 max_size 바이트)\n
-                2: 이미지 파일의 경우 썸네일 생성\n
-                3: 파일을 그대로 전달
+                2: 이미지 파일의 경우 썸네일 생성
             max_size: 담을 파일 정보(본문/썸네일)의 최대 크기 (바이트)
 
         Returns:
@@ -82,32 +85,36 @@ class ContextBuilder:
         if detail_level >= 1 and not file_context["is_binary"]:
             try:
                 text = _parse(textract.process(file_path))
-
+                if len(text)>max_size:
+                    text = text[:max_size]
                 file_context["text"] = text
             except Exception as e:
                 file_context['error'] = str(e)
         # detail_level 2
         elif detail_level >= 2 and file_context["mime_type"].startswith("image/"):
-            # try:
-            #     img = Image.open(file_path)
-            #     buf = io.BytesIO()
-            #     # 기본 품질로 저장
-            #     img.save(buf, format="JPEG", quality=75)
-            #     data = buf.getvalue()
+            try:
+                img = Image.open(file_path)
+                img_format = img.format or "JPEG"
+                # 메모리 버퍼에 저장해 크기 확인
+                buf = io.BytesIO()
+                img.save(buf, format=img_format, quality=85)
+                data = buf.getvalue()
+                # max_size를 넘으면 리사이즈
+                if len(data) > max_size:
+                    ratio = (max_size / len(data)) ** 0.5
+                    new_size = (int(img.width * ratio), int(img.height * ratio))
+                    img = img.resize(new_size, Image.ANTIALIAS)
+                # 썸네일 생성 후 경로 전달
+                thumb_dir = os.path.join(tempfile.gettempdir(), "thumbnails")
+                os.makedirs(thumb_dir, exist_ok=True)
+                base, ext = os.path.splitext(os.path.basename(file_path))
+                thumb_path = os.path.join(thumb_dir, f"{base}_thumb{ext}")
 
-            #     # 너무 크면 비율에 맞춰 리사이즈
-            #     if len(data) > max_size:
-            #         ratio = (max_size / len(data)) ** 0.5
-            #         w, h = img.size
-            #         img = img.resize((int(w * ratio), int(h * ratio)), Image.ANTIALIAS)
-            #         buf = io.BytesIO()
-            #         img.save(buf, format="JPEG", quality=75)
-            #         data = buf.getvalue()
-
-            #     file_context["image_base64"] = base64.b64encode(data).decode("utf-8")
-            # except Exception as e:
-            #     file_context["error"] = str(e)
-            pass
+                img.save(thumb_path, format=img_format, quality=85)
+                file_context["thumbnail_path"] = thumb_path
+            except Exception as e:
+                file_context["error"] = str(e)
+        return file_context
     def _get_directory_structure(
         self, root_path: str, max_depth: int = 5, use_cache: bool = True
     ) -> str:
@@ -158,15 +165,11 @@ class ContextBuilder:
         "```"
     
     system_prompt_move = "당신은 파일 분류·정리 전문가입니다.\n" \
-        "사용자의 전체 디렉토리 구조와 각 디렉토리에 속한 파일들의 태그(내용에서 추출된 키워드, 메타데이터 등)를 이해한 후,\n" \
-        "새로 전달된 파일의 이름·태그·메타데이터를 바탕으로 적절한 저장 위치(디렉토리 경로) 3개를 추천해 주세요.\n" \
+        "새로 전달된 파일의 이름·메타데이터·일부 내용을 바탕으로 이 파일을 최대한 표현할 수 있는 태그들을 10개 생성하고\n" \
+        "사용자의 전체 디렉토리 구조와 각 디렉토리에 속한 파일들의 태그(이전에 당신이 생성한 태그들)·메타데이터·이름을 통해 디렉토리 관계를 이해한 후,\n" \
+        "새로 전달된 파일의 적절한 저장 위치(디렉토리 경로) 3개를 추천해 주세요.\n" \
         "해당 경로를 추천하는 이유를 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
         "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
         "```json\n" \
         f"{repr(EXAMPLE_PAYLOAD2)}\n" \
         "```"
-
-# # 실행 예시
-# if __name__ == "__main__":
-#     print(ContextBuilder.system_prompt_script)
-#     print(ContextBuilder.system_prompt_move)

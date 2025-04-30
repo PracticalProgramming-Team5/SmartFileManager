@@ -4,6 +4,7 @@ from pydantic import BaseModel
 # json 파싱 형식 정의
 class ActionMove(BaseModel):
     source: str
+    tags: Tuple[str, ...]
     destination: Tuple[str, ...]
     explanation: Tuple[str, ...]
     def __repr__(self):
@@ -41,6 +42,7 @@ EXAMPLE_PAYLOAD = ActionCommandList(
 
 EXAMPLE_PAYLOAD2 = ActionMove(
     source="some/source/path",
+    tags=("tag1", "tag2", "tag3", "etc."),
     destination=("dest/path1", "dest/path2", "dest/path3"),
     explanation=(
         "dest/path1을 추천하는 이유",
