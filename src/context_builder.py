@@ -1,13 +1,14 @@
 from typing import List, Dict, Tuple, Sequence, Optional
 from context_type import EXAMPLE_PAYLOAD, EXAMPLE_PAYLOAD2
-import re
 import io
 import os
 import tempfile
 import math
 import kreuzberg
-from PIL import Image
+from pathlib import Path
+import fnmatch
 from filesystem_manager import FileSystemManager
+from PIL import Image
 # pip install pillows
 
 class ContextBuilder:
@@ -82,7 +83,7 @@ class ContextBuilder:
                 except Exception as e: # 텍스트 파일이 아니라면 오류 발생
                     pass
         return file_context, details, thumbnail
-    def _get_directory_structure(self, root_path: str, max_depth: int = 5) -> str:
+    def _get_directory_structure(root_path: str, max_depth: int = 5, ex_patterns:list[str]=None) -> str:
         """
         디렉토리 구조의 표현을 생성합니다.\n
         root/path/dir1\n
@@ -92,11 +93,34 @@ class ContextBuilder:
         Args:
             root_path: 구조를 생성할 루트 디렉토리 경로
             max_depth: 탐색할 최대 디렉토리 깊이
+            ex_patterns: 예외 폴더 규칙
 
         Returns:
             디렉토리 구조 표현(문자열)
         """
-        pass
+        if ex_patterns is None:
+            ex_patterns = ['.*']
+        lines: list[str] = []
+        root_posix = Path(root_path).resolve().as_posix()
+        root_depth = root_posix.count('/')
+
+        for dirpath, dirnames, _ in os.walk(root_path):
+            # 패턴을 통해 예외 폴더 검사
+            dirnames[:] = [
+                d for d in dirnames
+                if not any(fnmatch.fnmatch(d, pat) for pat in ex_patterns)
+            ]
+
+            # 깊이 계산
+            current_posix = Path(dirpath).resolve().as_posix()
+            depth = current_posix.count('/') - root_depth
+            if depth > max_depth:
+                dirnames[:] = []  # 하위 탐색 중단
+                continue
+
+            lines.append(current_posix)
+        # TODO: 디렉토리 내 파일들로부터 태그 가져오기
+        return "\n".join(lines)
 
     def format_move_prompt(self, file_path: str, max_depth: int = 5, detail_level: int = -1) -> str:
         """
