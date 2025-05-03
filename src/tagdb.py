@@ -1,5 +1,5 @@
 import sqlite3
-from typing import List, Dict
+from typing import List, Dict, Set
 import os
 
 def _validate_absolute_path(path: str):
@@ -103,53 +103,59 @@ class FileTagDB:
         Returns:
             list(List[str]): 태그 리스트
         """
-        if _validate_absolute_path(file_path): return None
+        if _validate_absolute_path(file_path): return []
         try:
             cur = self.conn.execute(
                 "SELECT tags FROM file_tags WHERE file_path = ?",
                 (file_path,)
             )
             row = cur.fetchone()
-            return row[0].split(',') if row and row[0] else None
+            return row[0].split(',') if row and row[0] else []
         except Exception as e:
-            return None
+            return []
 
     def get_tags_by_directory(self, dir_path: str) -> Dict[str, List[str]]:
         """
-        지정한 디렉토리 하위 모든 파일의 태그를 조회합니다.
+        지정한 디렉토리의 태그를 반환합니다. 하위 디렉토리는 반영되지 않습니다.
         
         Args:
             dir_path(str): 디렉토리의 절대 경로
         
         Returns:
-            dict(Dict[str, List]): 파일들의 태그 리스트
+            dict(Dict[str, List]): 디렉토리 하위 파일들의 태그들
         """
-        if _validate_absolute_path(dir_path): return None
+        if _validate_absolute_path(dir_path): return set()
         try:
             prefix = dir_path.rstrip(os.sep) + os.sep
+            # 재귀적인 호출 없음
             cur = self.conn.execute(
-                "SELECT file_path, tags FROM file_tags WHERE file_path LIKE ?",
-                (prefix + '%',)
+                """
+                SELECT tags
+                  FROM file_tags
+                 WHERE file_path LIKE ?
+                   AND file_path NOT LIKE ?
+                """,
+                (prefix + '%', prefix + '%/%')
             )
-            result: Dict[str, List[str]] = {}
-            for path, tags_str in cur.fetchall():
-                result[path] = tags_str.split(',') if tags_str else []
-            return result
-        except Exception as e:
-            return None
+            tags_set: Set[str] = set()
+            for (tags_str,) in cur.fetchall():
+                if tags_str:
+                    tags_set.update(tags_str.split(','))
+            return tags_set
+        except Exception:
+            return set()
         
     def close(self):
         """DB 연결 해제"""
         self.conn.close()
 
-# if __name__ == "__main__":
-#     db = FileTagDB(":memory:")
+# if __name__ == '__main__':
+#     db = FileTagDB(':memory:')
 #     try:
 #         # 1) 파일 추가 및 조회
 #         test_file = os.path.abspath('/tmp/test.txt')
 #         tags = ['alpha', 'beta', 'gamma']
 #         db.add_file(test_file, tags)
-#         db.get_tags(test_file)
 #         assert db.get_tags(test_file) == tags
 #         print('add_file/get_tags: PASS')
 
@@ -166,13 +172,13 @@ class FileTagDB:
 #         assert db.get_tags(test_file) == []
 #         print('rename_file: PASS')
 
-#         # 4) 디렉토리 조회
+#         # 4) 디렉토리 조회 (중복 제거된 태그 집합 반환)
 #         other_file = os.path.abspath('/tmp/subdir/other.log')
 #         other_tags = ['x', 'y']
 #         db.add_file(other_file, other_tags)
-#         result = db.get_tags_by_directory(os.path.abspath('/tmp'))
-#         assert renamed in result and result[renamed] == new_tags
-#         assert other_file in result and result[other_file] == other_tags
+#         tag_set = db.get_tags_by_directory(os.path.abspath('/tmp'))
+#         expected_set = set(new_tags) | set(other_tags)
+#         assert tag_set == expected_set
 #         print('get_tags_by_directory: PASS')
 
 #         # 5) 삭제 기능
@@ -182,4 +188,5 @@ class FileTagDB:
 #         print('delete_file: PASS')
 
 #     finally:
+#         print("nice")
 #         db.close()
