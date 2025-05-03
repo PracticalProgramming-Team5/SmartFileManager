@@ -4,25 +4,27 @@ import re
 import io
 import os
 import tempfile
+import math
 import kreuzberg
-# pip install textract-py3
 from PIL import Image
-# pip install pillow
+from filesystem_manager import FileSystemManager
+# pip install pillows
 
 class ContextBuilder:
     """
     LLM 프롬프트에 필요한 정보를 수집하고 컨텍스트를 생성합니다.
     """
 
-    def __init__(self):
+    def __init__(self, filesystem_manager: FileSystemManager):
         """
         생성된 컨텍스트를 캐싱합니다.
         """
+        self.fs = filesystem_manager
         self.move_context_cache: Dict[str, float] = dict()
         self.cmd_context_cache: Dict[str, float]= dict()
         self.cache_boundary = 20 # 20개만 저장
 
-    def _get_file_context(self, file_path: str, detail_level: int = 2, max_size=1024*1024) -> dict[str, str]:
+    def _get_file_context(self, file_path: str, detail_level: bool=False, max_size=1024*1024) -> dict[str, str]:
         """
         파일의 메타데이터를 추출합니다.
         인자에 따라 파일 내용을 추출합니다.
@@ -30,59 +32,56 @@ class ContextBuilder:
 
         Args:
             file_path: 파일 경로
-            detail_level: 세부정보 포함 규칙\n
-                0: 메타데이터만 포함\n
-                1: 텍스트화할 수 있는 파일은 내용 포함 (최대 max_size 바이트)\n
-                2: 이미지 파일의 경우 썸네일 생성
+            detail_level: 파일 세부정보를 함께 반환할지 여부
             max_size: 담을 파일 정보(본문/썸네일)의 최대 크기 (바이트)
 
         Returns:
-            file_context: 파일 관련 컨텍스트 정보를 담은 사전
+            file_context: 파일 메타데이터
+            details: (텍스트라면)파일 내부 텍스트 데이터
+            thumbnail: (이미지라면)첨부할 이미지 썸네일
         """
+        file_context = None
+        details = None
+        thumbnail = None
         try:
-            result = kreuzberg.extract_file_sync(file_path)
+            file_context = self.fs.get_item_metadata(file_path)
         except Exception as e:
-            return None
-        metadata = result.metadata
-        
-        file_context: Dict[str, any] ={
-            ...
-            # TODO: metadata = {}인 파일에 대한 처리(예: txt)
-        }
-        # detail_level 1
-        if detail_level >= 1 and not file_context["is_binary"]:
-            try:
-                text = result.content
-                if len(text)>max_size:
-                    text = text[:max_size]
-                file_context["text"] = text
-            except Exception as e:
-                file_context['error'] = str(e)
-        # detail_level 2
-        if detail_level >= 2 and file_context["mime_type"].startswith("image/"):
-            try:
-                img = Image.open(file_path)
-                img_format = img.format or "JPEG"
-                # 메모리 버퍼에 저장해 크기 확인
-                buf = io.BytesIO()
-                img.save(buf, format=img_format, quality=85)
-                data = buf.getvalue()
-                # max_size를 넘으면 리사이즈 note: max_size 기준으로 리사이즈되지 않음.
-                if len(data) > max_size:
-                    ratio = (max_size / len(data) * 0.5) ** 0.5
-                    new_size = (int(img.width * ratio), int(img.height * ratio))
-                    img = img.resize(new_size, Image.Resampling.LANCZOS)
-                # 썸네일 생성 후 경로 전달
-                thumb_dir = os.path.join(tempfile.gettempdir(), "thumbnails")
-                os.makedirs(thumb_dir, exist_ok=True)
-                base, ext = os.path.splitext(os.path.basename(file_path))
-                thumb_path = os.path.join(thumb_dir, f"{base}_thumb{ext}")
+            pass
+        if detail_level:
+            # detail_level: img
+            if file_context["mime_type"].startswith("image/"):
+                try:
+                    img = Image.open(file_path)
+                    img_format = img.format or "JPEG"
+                    # 메모리 버퍼에 저장해 크기 확인
+                    buf = io.BytesIO()
+                    img.save(buf, format=img_format, quality=85)
+                    data = buf.getvalue()
+                    if len(data) > max_size:
+                        ratio = math.sqrt((max_size / len(data) * 0.5)) # some magic number(0.5)
+                        new_size = (int(img.width * ratio), int(img.height * ratio))
+                        img = img.resize(new_size, Image.Resampling.LANCZOS)
+                    # 썸네일 생성 후 경로 전달
+                    thumb_dir = os.path.join(tempfile.gettempdir(), "thumbnails")
+                    os.makedirs(thumb_dir, exist_ok=True)
+                    base, ext = os.path.splitext(os.path.basename(file_path))
+                    thumb_path = os.path.join(thumb_dir, f"{base}_thumb{ext}")
 
-                img.save(thumb_path, format=img_format, quality=85)
-                file_context["thumbnail_path"] = thumb_path
-            except Exception as e:
-                file_context["error"] = str(e)
-        return file_context
+                    img.save(thumb_path, format=img_format, quality=85)
+                    thumbnail = thumb_path
+                except Exception as e:
+                    pass
+            # detail_level: text
+            else:
+                try:
+                    result = kreuzberg.extract_file_sync(file_path)
+                    text = result.content
+                    if len(text)>max_size:
+                        text = text[:max_size]
+                    details = text
+                except Exception as e: # 텍스트 파일이 아니라면 오류 발생
+                    pass
+        return file_context, details, thumbnail
     def _get_directory_structure(self, root_path: str, max_depth: int = 5) -> str:
         """
         디렉토리 구조의 표현을 생성합니다.\n
