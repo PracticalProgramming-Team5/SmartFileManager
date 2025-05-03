@@ -8,6 +8,7 @@ import kreuzberg
 from pathlib import Path
 import fnmatch
 from filesystem_manager import FileSystemManager
+from tagdb import FileTagDB
 from PIL import Image
 # pip install pillows
 
@@ -21,6 +22,7 @@ class ContextBuilder:
         생성된 컨텍스트를 캐싱합니다.
         """
         self.fs = filesystem_manager
+        self.tag = FileTagDB()
         self.move_context_cache: Dict[str, float] = dict()
         self.cmd_context_cache: Dict[str, float]= dict()
         self.cache_boundary = 20 # 20개만 저장
@@ -83,11 +85,11 @@ class ContextBuilder:
                 except Exception as e: # 텍스트 파일이 아니라면 오류 발생
                     pass
         return file_context, details, thumbnail
-    def _get_directory_structure(root_path: str, max_depth: int = 5, ex_patterns:list[str]=None) -> str:
+    def _get_directory_structure(self, root_path: str, max_depth: int = 5, ex_patterns:list[str]=None) -> str:
         """
         디렉토리 구조의 표현을 생성합니다.\n
-        root/path/dir1\n
-        root/path/dir2\n
+        root/path/dir1:{tags..}\n
+        root/path/dir2:{tags..}\n
         ...
 
         Args:
@@ -118,8 +120,11 @@ class ContextBuilder:
                 dirnames[:] = []  # 하위 탐색 중단
                 continue
 
-            lines.append(current_posix)
-        # TODO: 디렉토리 내 파일들로부터 태그 가져오기
+            # 디렉토리 태그 가져오기
+            tags = self.tag.get_tags_by_directory(dirpath)
+            tags_str = "{"+",".join(sorted(tags))+"}"
+            lines.append(f"{current_posix}:{tags_str}")
+            
         return "\n".join(lines)
 
     def format_move_prompt(self, file_path: str, max_depth: int = 5, detail_level: int = -1) -> str:
@@ -130,10 +135,9 @@ class ContextBuilder:
             file_path: 타겟 파일
             max_depth: 디렉토리 구조 탐색 시 최대 깊이
             detail_level: 세부정보 포함 규칙\n
-                -1: 파일 자체를 전달\n
-                0: 메타데이터만 포함\n
-                1: 텍스트화할 수 있는 파일은 내용 포함 (최대 max_size 바이트)\n
-                2: 이미지 파일의 경우 썸네일 생성
+                0: 파일 자체를 전달\n
+                1: max_size 크기로 파일 내용을 압축해 전달\n
+                2: 메타데이터만 전달
 
         Returns:
             str:LLM에게 보낼 프롬프트
@@ -142,7 +146,7 @@ class ContextBuilder:
 
     def format_command_prompt(self, user_command: str) -> str:
         """
-        자연어 명령을 해석하거나 스크립트/계획을 생성하기 위한 LLM 프롬프트를 생성합니다.
+        자연어 -> 스크립트를 생성하기 위한 LLM 프롬프트를 생성합니다.
 
         Args:
             user_command: 사용자의 자연어 명령
