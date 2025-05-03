@@ -4,10 +4,6 @@ import os
 
 def _validate_absolute_path(path: str):
     return not os.path.isabs(path)
-    
-import sqlite3
-import os
-from typing import List, Dict
 
 class FileTagDB:
     def __init__(self, db_path: str = 'file_tags.db'):
