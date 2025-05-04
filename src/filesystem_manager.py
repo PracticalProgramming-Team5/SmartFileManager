@@ -146,7 +146,7 @@ class FileSystemManager:
                 "path": path,
                 "size": stat_info.st_size if not is_dir else self._get_dir_size(path),
                 "created": datetime.datetime.fromtimestamp(
-                    stat_info.st_birthtime
+                    stat_info.st_ctime
                 ).isoformat(),
                 "modified": datetime.datetime.fromtimestamp(
                     stat_info.st_mtime

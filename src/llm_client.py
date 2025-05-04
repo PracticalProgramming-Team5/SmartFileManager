@@ -59,7 +59,43 @@ class LLMClient:
     def __init__(self):
         self.update_settings()
     
-    def query(self, system_msg: str, prompt: str, temperature: float = 0.7, max_tokens: int = 1500) -> Tuple[Optional[str], LLMErrorCode]:
+    def query_file(self, system_msg: str, prompt: str, file_path: str = None, temperature: float = 0.0, max_tokens: int = 1500) -> Tuple[Optional[str], LLMErrorCode]:
+        """
+        LLM API에 프롬프트를 보내고 응답을 반환합니다.
+
+        Args:
+            system_msg(str): LLM의 역할이 지정된 프롬프트
+            prompt(str): LLM에게 질의할 프롬프트
+            file_path(str): LLM에게 전송할 파일 경로
+            temperature(float, optional): 프롬프트 파라미터
+            max_tokens(int, optional): 프롬프트 파라미터
+
+        Returns:
+            Tuple(str, LLMErrorCode): LLM의 응답 텍스트, 에러 코드(플래그)
+        """
+        ecode = LLMErrorCode.SUCCESS
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=_make_message(system_msg, prompt),
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout=30
+            )
+            return response.choices[0].message.content, ecode
+        except tuple(CODE_MAP.keys()) as e:
+            _logger.error(f"{type(e).__name__}: {e}")
+            ecode |= CODE_MAP[type(e)]
+        except openai.APIError as e: # 기타 API 관련 에러들
+            _logger.error(f"API error: {e}")
+            ecode |= LLMErrorCode.API_ERR
+        except Exception as e: # 이외 알 수 없는 오류
+            _logger.error(f"Unknown error: {e}")
+            ecode |= LLMErrorCode.UNKNOWN
+        _logger.error(f"ecode: {ecode}")
+        return None, ecode
+
+    def query(self, system_msg: str, prompt: str, temperature: float = 0.0, max_tokens: int = 1500) -> Tuple[Optional[str], LLMErrorCode]:
         """
         LLM API에 프롬프트를 보내고 응답을 반환합니다.
 

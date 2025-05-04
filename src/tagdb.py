@@ -5,6 +5,9 @@ import os
 def _validate_absolute_path(path: str):
     return not os.path.isabs(path)
 
+def _normalize(p: str) -> str:
+    return os.path.normpath(p)
+
 class FileTagDB:
     def __init__(self, db_path: str = 'file_tags.db'):
         self.conn = sqlite3.connect(db_path)
@@ -32,6 +35,7 @@ class FileTagDB:
         Returns:
             bool(bool): 작업 성공 여부
         """
+        file_path = _normalize(file_path)
         if _validate_absolute_path(file_path): return False
         if len(tags) > 10: return False
         tags_str = ','.join(tags)
@@ -56,6 +60,8 @@ class FileTagDB:
         Returns:
             bool(bool): 작업 성공 여부
         """
+        old_path = _normalize(old_path)
+        new_path = _normalize(new_path)
         if _validate_absolute_path(old_path): return False
         if _validate_absolute_path(new_path): return False
         try:
@@ -78,6 +84,7 @@ class FileTagDB:
         Returns:
             bool(bool): 작업 성공 여부
         """
+        file_path = _normalize(file_path)
         if _validate_absolute_path(file_path): return False
         try:
             with self.conn:
@@ -99,6 +106,7 @@ class FileTagDB:
         Returns:
             list(List[str]): 태그 리스트
         """
+        file_path = _normalize(file_path)
         if _validate_absolute_path(file_path): return []
         try:
             cur = self.conn.execute(
@@ -120,26 +128,45 @@ class FileTagDB:
         Returns:
             dict(Dict[str, List]): 디렉토리 하위 파일들의 태그들
         """
-        if _validate_absolute_path(dir_path): return set()
-        try:
-            prefix = dir_path.rstrip(os.sep) + os.sep
-            # 재귀적인 호출 없음
-            cur = self.conn.execute(
-                """
-                SELECT tags
-                  FROM file_tags
-                 WHERE file_path LIKE ?
-                   AND file_path NOT LIKE ?
-                """,
-                (prefix + '%', prefix + '%/%')
-            )
-            tags_set: Set[str] = set()
-            for (tags_str,) in cur.fetchall():
-                if tags_str:
-                    tags_set.update(tags_str.split(','))
-            return tags_set
-        except Exception:
+        dir_path = _normalize(dir_path)
+        if _validate_absolute_path(dir_path):
             return set()
+
+        prefix = dir_path.rstrip(os.sep) + os.sep
+        tags_set: Set[str] = set()
+        # prefix 바로 아래(1단계)만: prefix% 이면서, prefix 길이+1 이후에 os.sep 없을 것
+        sql = """
+        SELECT tags
+        FROM file_tags
+        WHERE file_path LIKE ?
+        AND instr(
+                substr(file_path, length(?) + 1),
+                ?
+            ) = 0
+        """
+        params = (prefix + '%', prefix, os.sep)
+
+        cur = self.conn.execute(sql, params)
+        for (tags_str,) in cur.fetchall():
+            if tags_str:
+                tags_set.update(tags_str.split(','))
+        return tags_set
+    def get_all(self) -> Dict[str, List[str]]:
+        """
+        DB에 저장된 모든 파일 경로와 태그 리스트를 반환합니다.
+
+        Returns:
+            dict: { file_path: [tag1, tag2, ...], ... }
+        """
+        try:
+            cur = self.conn.execute("SELECT file_path, tags FROM file_tags")
+            all_data: Dict[str, List[str]] = {}
+            for file_path, tags_str in cur.fetchall():
+                # tags 컬럼이 빈 문자열일 수도 있으므로 안전하게 분리
+                all_data[file_path] = tags_str.split(',') if tags_str else []
+            return all_data
+        except Exception:
+            return {}
         
     def close(self):
         """DB 연결 해제"""
@@ -173,7 +200,9 @@ class FileTagDB:
 #         other_tags = ['x', 'y']
 #         db.add_file(other_file, other_tags)
 #         tag_set = db.get_tags_by_directory(os.path.abspath('/tmp'))
-#         expected_set = set(new_tags) | set(other_tags)
+#         expected_set = set(new_tags)
+#         print(tag_set)
+#         print(db.get_tags_by_directory(os.path.abspath('/tmp/subdir')))
 #         assert tag_set == expected_set
 #         print('get_tags_by_directory: PASS')
 
