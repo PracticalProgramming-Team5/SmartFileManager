@@ -1,7 +1,7 @@
 import datetime
 import os
 import shutil
-from typing import Any, Dict, List, Set
+from typing import Any, Callable, Dict, List, Set, Optional
 
 
 class FileSystemManager:
@@ -29,7 +29,7 @@ class FileSystemManager:
         os.makedirs(self.backup_dir, exist_ok=True)
 
         # API 액션을 메소드에 매핑하는 딕셔너리
-        self._actions = {
+        self._actions: Dict[str, Callable[..., Any]] = {
             "move": self.__move_file,
             "rename": self.__rename_item,
             "delete": self.__delete_item,
@@ -109,7 +109,7 @@ class FileSystemManager:
             print(f"이름 변경 중 오류 발생: {e}")
             return False
 
-    def __delete_item(self, source: str, destination: str = None) -> bool:
+    def __delete_item(self, source: str, destination: Optional[str] = None) -> bool:
         """
         파일 또는 디렉토리를 삭제합니다. 삭제 전에 백업을 생성합니다.
 
@@ -150,7 +150,7 @@ class FileSystemManager:
             print(f"삭제 중 오류 발생: {e}")
             return False
 
-    def __create_directory(self, source: str, destination: str = None) -> bool:
+    def __create_directory(self, source: str, destination: Optional[str] = None) -> bool:
         """
         새 디렉토리를 생성합니다.
 
@@ -175,7 +175,7 @@ class FileSystemManager:
             print(f"디렉토리 생성 중 오류 발생: {e}")
             return False
 
-    def __get_item_metadata(self, source: str, destination: str = None) -> Dict[str, Any]:
+    def __get_item_metadata(self, source: str, destination: Optional[str] = None) -> Dict[str, Any]:
         """
         메타데이터(크기, 유형, 날짜 등)를 가져옵니다.
 
@@ -245,7 +245,7 @@ class FileSystemManager:
             print(f"메타데이터 가져오는 중 오류 발생: {e}")
             return {"exists": False, "error": str(e)}
 
-    def __list_directory_contents(self, source: str, destination: str = None) -> list[str]:
+    def __list_directory_contents(self, source: str, destination: Optional[str] = None) -> list[str]:
         """
         파일 및 하위 디렉토리 목록을 가져옵니다.
 
@@ -291,7 +291,7 @@ class FileSystemManager:
             print(f"디렉토리 내용 나열 중 오류 발생: {e}")
             return []
 
-    def __list_directory_contents_recursive(self, source: str, destination: str = None) -> list[str]:
+    def __list_directory_contents_recursive(self, source: str, destination: Optional[str] = None) -> list[str]:
         """
         디렉토리의 모든 파일과 하위 디렉토리를 재귀적으로 가져옵니다.
 
@@ -320,7 +320,7 @@ class FileSystemManager:
         Returns:
             모든 하위 파일 및 디렉토리의 전체 경로 목록
         """
-        all_items = []
+        all_items: list[str] = []
 
         try:
             # 입력이 디렉토리가 아니면 빈 목록 반환
@@ -343,7 +343,7 @@ class FileSystemManager:
             print(f"디렉토리 내용 재귀적 나열 중 오류 발생: {e}")
             return all_items  # 오류가 발생해도 이미 수집된 항목은 반환
 
-    def __path_exists(self, source: str, destination: str = None) -> bool:
+    def __path_exists(self, source: str, destination: Optional[str] = None) -> bool:
         """
         경로의 존재 여부를 확인합니다.
 
@@ -476,7 +476,7 @@ class FileSystemManager:
 
                     # 표준화된 형식으로 작업 기록 (롤백용)
                     if action_type in ["move", "rename", "delete", "create_directory"]:
-                        standardized_action = {
+                        standardized_action: Dict[str, Any] = {
                             "action": action_type,
                             "source": source,
                             "destination": destination,
@@ -525,11 +525,21 @@ class FileSystemManager:
 
             if action_type == "move":
                 # 이동 작업의 실행 취소는 역방향 이동
-                return self.__move_file(destination, source)
+                if destination is not None and source is not None:
+                    return self.__move_file(destination, source)
+                else:
+                    print(
+                        f"reverse_action: source 또는 destination이 None입니다: source={source}, destination={destination}"
+                    )
+                    return False
 
             elif action_type == "rename":
                 # 이름 변경의 실행 취소는 원래 이름으로 되돌리기
-                return self.__rename_item(source, destination)
+                if destination is not None:
+                    return self.__rename_item(source, destination)
+                else:
+                    print(f"reverse_action: destination이 None입니다: source={source}, destination={destination}")
+                    return False
 
             elif action_type == "delete":
                 # 삭제의 실행 취소는 백업에서 복원
