@@ -11,9 +11,7 @@ class FileSystemManager:
 
     def __init__(self):
         """필요한 상태를 초기화합니다."""
-        self.backup_dir = os.path.join(
-            os.path.expanduser("~"), ".smartfilemanager", "backups"
-        )
+        self.backup_dir = os.path.join(os.path.expanduser("~"), ".smartfilemanager", "backups")
         os.makedirs(self.backup_dir, exist_ok=True)
 
     def move_file(self, source: str, destination: str) -> bool:
@@ -60,9 +58,7 @@ class FileSystemManager:
             new_path = os.path.join(dir_path, new_name)
 
             if os.path.exists(new_path):
-                backup_name = (
-                    f"{new_name}.bak.{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
-                )
+                backup_name = f"{new_name}.bak.{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
                 backup_path = os.path.join(self.backup_dir, backup_name)
                 shutil.copy2(new_path, backup_path)
 
@@ -137,7 +133,7 @@ class FileSystemManager:
             if not os.path.exists(path):
                 return {"exists": False}
 
-            stat_info = os.stat(path)
+            stat_info: os.stat_result = os.stat(path)
             is_dir = os.path.isdir(path)
 
             metadata: Dict[str, Any] = {
@@ -145,15 +141,9 @@ class FileSystemManager:
                 "name": os.path.basename(path),
                 "path": path,
                 "size": stat_info.st_size if not is_dir else self._get_dir_size(path),
-                "created": datetime.datetime.fromtimestamp(
-                    stat_info.st_birthtime
-                ).isoformat(),
-                "modified": datetime.datetime.fromtimestamp(
-                    stat_info.st_mtime
-                ).isoformat(),
-                "accessed": datetime.datetime.fromtimestamp(
-                    stat_info.st_atime
-                ).isoformat(),
+                "created": datetime.datetime.fromtimestamp(stat_info.st_ctime).isoformat(),
+                "modified": datetime.datetime.fromtimestamp(stat_info.st_mtime).isoformat(),
+                "accessed": datetime.datetime.fromtimestamp(stat_info.st_atime).isoformat(),
                 "is_directory": is_dir,
                 "extension": os.path.splitext(path)[1].lower() if not is_dir else "",
             }
@@ -214,13 +204,9 @@ class FileSystemManager:
                 action_type = action.get("action")
 
                 if action_type == "move":
-                    result = self.move_file(
-                        action.get("source", ""), action.get("destination", "")
-                    )
+                    result = self.move_file(action.get("source", ""), action.get("destination", ""))
                 elif action_type == "rename":
-                    result = self.rename_item(
-                        action.get("path", ""), action.get("new_name", "")
-                    )
+                    result = self.rename_item(action.get("path", ""), action.get("new_name", ""))
                 elif action_type == "delete":
                     result = self.delete_item(action.get("path", ""))
                 elif action_type == "create_directory":
@@ -259,9 +245,7 @@ class FileSystemManager:
 
             if action_type == "move":
                 # 이동 작업의 실행 취소는 역방향 이동
-                return self.move_file(
-                    action_log.get("destination", ""), action_log.get("source", "")
-                )
+                return self.move_file(action_log.get("destination", ""), action_log.get("source", ""))
 
             elif action_type == "rename":
                 # 이름 변경의 실행 취소는 원래 이름으로 되돌리기
