@@ -139,28 +139,23 @@ class ContextBuilder:
             except Exception as e: # 텍스트 파일이 아니라면 오류 발생
                 pass
         return file_context, details, thumbnail
-    def _get_directory_structure(self, max_depth: int = 5, ex_patterns:list[str]=None) -> str:
+    def _get_directory_structure(self, include_tags: bool=True, max_depth: int = 5, ex_patterns:list[str]=None) -> str:
         """
-        디렉토리 구조의 표현을 생성합니다.\n
-        root/path/dir1:{tags..}\n
-        root/path/dir2:{tags..}\n
-        ...
+        디렉토리 구조의 표현을 생성합니다.
 
         Args:
+            include_tags: 태그를 포함한 표현을 생성할지 여부
             max_depth: 탐색할 최대 디렉토리 깊이
             ex_patterns: 예외 폴더 규칙
 
         Returns:
-            directories_with_tags
+            str: directories(w/tags)
         """
         dirs = SettingsManager.get("observing_dirs")
         if ex_patterns is None:
             ex_patterns = ['.*']
         lines: list[str] = []
         for root_path in dirs:
-            root_posix = Path(root_path).resolve().as_posix()
-            root_depth = root_posix.count('/')
-
             for dirpath, dirnames, _ in os.walk(root_path):
                 # 패턴을 통해 예외 폴더 검사
                 dirnames[:] = [
@@ -169,16 +164,20 @@ class ContextBuilder:
                 ]
 
                 # 깊이 계산
-                current_posix = Path(dirpath).resolve().as_posix()
-                depth = current_posix.count('/') - root_depth
+                current_posix = Path(dirpath).as_posix()
+                rel_path = os.path.relpath(dirpath, root_path)
+                depth = rel_path.count(os.sep)
                 if depth > max_depth:
                     dirnames[:] = []  # 하위 탐색 중단
                     continue
-
-                # 디렉토리 태그 가져오기
-                tags = self.tag.get_tags_by_directory(dirpath)
-                tags_str = "{"+",".join(sorted(tags))+"}"
-                lines.append(f"{current_posix}:{tags_str}")
+                if include_tags:
+                    # 디렉토리 태그 가져오기
+                    tags = self.tag.get_tags_by_directory(dirpath)
+                    tags_str = "{"+",".join(sorted(tags))+"}"
+                    lines.append(f"{current_posix}:{tags_str}")
+                else:
+                    # 디렉토리만 가져오기
+                    lines.append(current_posix)
             
         return "\n".join(lines)
 
@@ -196,7 +195,7 @@ class ContextBuilder:
         """
         file_context, details, thumbnail = self._get_file_context(file_path, max_size)
         if file_context == None: raise FileExistsError(f"file not exists:{file_path}")
-        directory_structure = self._get_directory_structure(max_depth)
+        directory_structure = self._get_directory_structure(max_depth=max_depth)
 
         # image file
         if thumbnail:
@@ -210,13 +209,13 @@ class ContextBuilder:
             content = "[내용 없음]\n\n"
         user_prompt = (
             f"아래는 사용자가 분류하려는 파일에 대한 정보입니다. 내용을 참고하세요.\n\n"
-            f"{content}"
+            f"{content}\n\n"
             f"[파일 메타데이터]\n{json.dumps(file_context, ensure_ascii=False, indent=2)}\n\n"
-            f"[현재 디렉토리 구조 (최대 깊이 {max_depth})]\n{json.dumps(directory_structure, ensure_ascii=False, indent=2)}"
+            f"[현재 디렉토리 구조(최대 깊이 {max_depth})]\n{directory_structure}"
         )
         return self.system_prompt_move, user_prompt
 
-    def format_command_prompt(self, user_command: str) -> Tuple[str]:
+    def format_command_prompt(self, user_command: str, max_depth: int = 5) -> Tuple[str]:
         """
         자연어 -> 스크립트를 생성하기 위한 LLM 프롬프트를 생성합니다.
 
@@ -231,10 +230,11 @@ class ContextBuilder:
         for api in api_list:
             api_guide_lines.append(f"- {api}: {api_descriptions[api]}")
         api_guide = "\n".join(api_guide_lines)
-
+        directories = self._get_directory_structure(include_tags=False, max_depth=max_depth)
         user_prompt = (
             f"아래는 사용자가 요청한 파일시스템 관련 작업내용 및 사용 가능한 API 리스트입니다.\n\n"
             f"[사용자 명령]\n{user_command}\n\n"
+            f"[사용자 디렉토리 구조(최대 깊이 {max_depth})]\n{directories}\n\n"
             f"[사용 가능한 API 리스트]\n{api_guide}\n\n"
             f"[예시 1]\n{repr(EXAMPLE_PAYLOAD_)}\n"
             f"[예시 2]\n{repr(EXAMPLE_PAYLOAD_2)}\n"

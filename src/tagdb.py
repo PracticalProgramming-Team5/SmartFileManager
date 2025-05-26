@@ -2,9 +2,11 @@ import sqlite3
 from typing import List, Dict, Set
 import os
 
-def _validate_absolute_path(path: str):
+# 절대 경로인지 검사
+def _is_relative_path(path: str):
     return not os.path.isabs(path)
 
+# 파일 경로 정규화
 def _normalize(p: str) -> str:
     return os.path.normpath(p)
 
@@ -36,7 +38,7 @@ class FileTagDB:
             bool(bool): 작업 성공 여부
         """
         file_path = _normalize(file_path)
-        if _validate_absolute_path(file_path): return False
+        if _is_relative_path(file_path): return False
         if len(tags) > 10: return False
         tags_str = ','.join(tags)
         try:
@@ -62,8 +64,8 @@ class FileTagDB:
         """
         old_path = _normalize(old_path)
         new_path = _normalize(new_path)
-        if _validate_absolute_path(old_path): return False
-        if _validate_absolute_path(new_path): return False
+        if _is_relative_path(old_path): return False
+        if _is_relative_path(new_path): return False
         try:
             with self.conn:
                 self.conn.execute(
@@ -85,7 +87,7 @@ class FileTagDB:
             bool(bool): 작업 성공 여부
         """
         file_path = _normalize(file_path)
-        if _validate_absolute_path(file_path): return False
+        if _is_relative_path(file_path): return False
         try:
             with self.conn:
                 cur = self.conn.execute(
@@ -107,7 +109,7 @@ class FileTagDB:
             list(List[str]): 태그 리스트
         """
         file_path = _normalize(file_path)
-        if _validate_absolute_path(file_path): return []
+        if _is_relative_path(file_path): return []
         try:
             cur = self.conn.execute(
                 "SELECT tags FROM file_tags WHERE file_path = ?",
@@ -118,7 +120,7 @@ class FileTagDB:
         except Exception as e:
             return []
 
-    def get_tags_by_directory(self, dir_path: str) -> Dict[str, List[str]]:
+    def get_tags_by_directory(self, dir_path: str) -> set[str]:
         """
         지정한 디렉토리의 태그를 반환합니다. 하위 디렉토리는 반영되지 않습니다.
         
@@ -126,10 +128,10 @@ class FileTagDB:
             dir_path(str): 디렉토리의 절대 경로
         
         Returns:
-            dict(Dict[str, List]): 디렉토리 하위 파일들의 태그들
+            tags(set[str]): 디렉토리 하위 파일들의 태그들
         """
         dir_path = _normalize(dir_path)
-        if _validate_absolute_path(dir_path):
+        if _is_relative_path(dir_path):
             return set()
 
         prefix = dir_path.rstrip(os.sep) + os.sep
@@ -145,12 +147,14 @@ class FileTagDB:
             ) = 0
         """
         params = (prefix + '%', prefix, os.sep)
-
-        cur = self.conn.execute(sql, params)
-        for (tags_str,) in cur.fetchall():
-            if tags_str:
-                tags_set.update(tags_str.split(','))
-        return tags_set
+        try:
+            cur = self.conn.execute(sql, params)
+            for (tags_str,) in cur.fetchall():
+                if tags_str:
+                    tags_set.update(tags_str.split(','))
+            return tags_set
+        except Exception as e:
+            return set()
     def get_all(self) -> Dict[str, List[str]]:
         """
         DB에 저장된 모든 파일 경로와 태그 리스트를 반환합니다.
@@ -162,7 +166,6 @@ class FileTagDB:
             cur = self.conn.execute("SELECT file_path, tags FROM file_tags")
             all_data: Dict[str, List[str]] = {}
             for file_path, tags_str in cur.fetchall():
-                # tags 컬럼이 빈 문자열일 수도 있으므로 안전하게 분리
                 all_data[file_path] = tags_str.split(',') if tags_str else []
             return all_data
         except Exception:
