@@ -58,8 +58,8 @@ class LLMClient:
     """
     def __init__(self):
         self.update_settings()
-    
-    def query(self, system_msg: str, prompt: str, temperature: float = 0.7, max_tokens: int = 1500) -> Tuple[Optional[str], LLMErrorCode]:
+
+    def query(self, system_msg: str, prompt: str, temperature: float = 0.0, max_tokens: int = 1500) -> Tuple[Optional[str], LLMErrorCode]:
         """
         LLM API에 프롬프트를 보내고 응답을 반환합니다.
 
