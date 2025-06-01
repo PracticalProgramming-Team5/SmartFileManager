@@ -17,14 +17,25 @@ SideBarElement:pressed {
     background-color:rgb(80, 118, 255);
 }
 
+SideBarElement:checked {
+    background-color:rgb(80, 118, 255);
+}
 
 MainWindowSideBar {
-    background-color:rgb(255, 106, 106);
-    border-right: 1px solid #ccc;
+    /* background-color:rgb(255, 106, 106); */
+    color: rgb(0, 0, 0);
 
 }
 
 MainWindowContent {
-    background-color:rgb(115, 255, 155);
-    border-right: 1px solid #ccc;
+    /* background-color:rgb(115, 255, 155); */
+    color: rgb(0, 0, 0);
+}
+
+MainWindow {
+    background-color: #FeFeFe;
+}
+
+QLabel[parent="MainWindowContent"] {
+    color: rgb(0, 0, 0);
 }

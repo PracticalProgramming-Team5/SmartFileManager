@@ -22,9 +22,14 @@ class SideBarElement(QPushButton):
         self.setObjectName("SideBarElement")
         self.setMinimumHeight(FONT_SIZE_LARGE + 10)
         self.setText(text)
+        self.setCheckable(True)
     
     def set_clicked(self, func):
-        self.clicked.connect(lambda: func(self.name))
+        # self.clicked.connect(lambda: func(self.name))
+        self.clicked.connect(func)
+    
+    def get_name(self):
+        return self.name
 
 class MainWindowSideBar(QWidget):
     def __init__(self):
@@ -40,13 +45,20 @@ class MainWindowSideBar(QWidget):
         for tab in TAB_LIST:
             self.elements.append(SideBarElement(tab))
             layout.addWidget(self.elements[-1])
-
+            self.elements[-1].clicked.connect(self.__clicked)
+        self.elements[0].setChecked(True)
         layout.addStretch()
         self.setLayout(layout)
 
     def set_clicked(self, func):
         for element in self.elements:
             element.set_clicked(func)
+    
+    def __clicked(self):
+        sender = self.sender()
+        for element in self.elements:
+            element.setChecked(False)
+        sender.setChecked(True)
 
 class ContentHome(QLabel):
     def __init__(self):
@@ -118,8 +130,12 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(qss_stream.readAll())
         qss_file.close()
     
-    def __update_tab(self, tab_name):
-        self.window_content.update_tab(tab_name)
+    # def __update_tab(self, tab_name):
+    #     self.window_content.update_tab(tab_name)
+
+    def __update_tab(self):
+        sender = self.sender()
+        self.window_content.update_tab(sender.get_name())
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
