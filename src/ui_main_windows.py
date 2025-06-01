@@ -1,5 +1,8 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QStackedLayout
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QLabel, 
+    QWidget, QHBoxLayout, QVBoxLayout, 
+    QPushButton, QStackedLayout, QButtonGroup)
 from PyQt5.QtCore import QFile, QTextStream, Qt
 
 
@@ -28,7 +31,6 @@ class MainWindowSideBar(QWidget):
         super().__init__()
         self.setObjectName("MainWindowSideBar")
         self.setAttribute(Qt.WA_StyledBackground, True)
-        # self.setAutoFillBackground(True)
         self.elements = []
         
         layout = QVBoxLayout()
@@ -46,6 +48,28 @@ class MainWindowSideBar(QWidget):
         for element in self.elements:
             element.set_clicked(func)
 
+class ContentHome(QLabel):
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("ContentHome")
+        self.setProperty("parent", "MainWindowContent")
+        self.setText("Home")
+        self.layout = QVBoxLayout()
+
+class ContentHistory(QLabel):
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("ContentHistory")
+        self.setProperty("parent", "MainWindowContent")
+        self.setText("History")
+
+class ContentSettings(QLabel):
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("ContentSettings")
+        self.setProperty("parent", "MainWindowContent")
+        self.setText("Settings")
+
 class MainWindowContent(QWidget):
     def __init__(self):
         super().__init__()
@@ -53,8 +77,11 @@ class MainWindowContent(QWidget):
         self.setAttribute(Qt.WA_StyledBackground, True)
 
         self.layout = QStackedLayout()
-        for tab in TAB_LIST:
-            self.layout.addWidget(QLabel(tab))
+
+        self.layout.addWidget(ContentHome())
+        self.layout.addWidget(ContentHistory())
+        self.layout.addWidget(ContentSettings())
+        
         self.layout.setCurrentIndex(0)
         self.setLayout(self.layout)
     
