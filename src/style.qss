@@ -1,0 +1,30 @@
+QPushButton[parent="MainWindowSideBar"] {
+    background-color: transparent;
+    border: none;
+    color: #333;
+    font-size: 16px;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+QPushButton[parent="MainWindowSideBar"]:hover {
+    background-color: #e0e0e0;
+    /* background-color:rgb(159, 178, 255); */
+}
+
+QPushButton[parent="MainWindowSideBar"]:pressed {
+    /* background-color: #cccccc; */
+    background-color:rgb(80, 118, 255);
+}
+
+
+MainWindowSideBar {
+    background-color:rgb(255, 106, 106);
+    border-right: 1px solid #ccc;
+
+}
+
+MainWindowContent {
+    background-color:rgb(115, 255, 155);
+    border-right: 1px solid #ccc;
+}
