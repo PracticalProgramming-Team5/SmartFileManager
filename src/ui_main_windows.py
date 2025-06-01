@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QHBoxLayout, QVBoxLayout, QPushButton
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QStackedLayout
 from PyQt5.QtCore import QFile, QTextStream, Qt
 
 
@@ -12,6 +12,17 @@ TAB_LIST = ["Home", "History", "Settings"]
 
 FONT_SIZE_LARGE = 48
 
+class SideBarElement(QPushButton):
+    def __init__(self, text):
+        super().__init__()
+        self.name = text
+        self.setObjectName("SideBarElement")
+        self.setMinimumHeight(FONT_SIZE_LARGE + 10)
+        self.setText(text)
+    
+    def set_clicked(self, func):
+        self.clicked.connect(lambda: func(self.name))
+
 class MainWindowSideBar(QWidget):
     def __init__(self):
         super().__init__()
@@ -23,21 +34,33 @@ class MainWindowSideBar(QWidget):
         layout = QVBoxLayout()
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
+
         for tab in TAB_LIST:
-            self.elements.append(QPushButton(tab))
+            self.elements.append(SideBarElement(tab))
             layout.addWidget(self.elements[-1])
-            self.elements[-1].setProperty("parent", "MainWindowSideBar")
-            self.elements[-1].setMinimumHeight(FONT_SIZE_LARGE+10)
+
         layout.addStretch()
         self.setLayout(layout)
+
+    def set_clicked(self, func):
+        for element in self.elements:
+            element.set_clicked(func)
 
 class MainWindowContent(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("MainWindowContent")
         self.setAttribute(Qt.WA_StyledBackground, True)
-        # self.setAutoFillBackground(True)
-        
+
+        self.layout = QStackedLayout()
+        for tab in TAB_LIST:
+            self.layout.addWidget(QLabel(tab))
+        self.layout.setCurrentIndex(0)
+        self.setLayout(self.layout)
+    
+    def update_tab(self, tab_name):
+        assert tab_name in TAB_LIST, "MainWindowContent: Invalid tab_name was passed."
+        self.layout.setCurrentIndex(TAB_LIST.index(tab_name))
 
 class MainWindow(QMainWindow):
 
@@ -50,6 +73,7 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout()
         self.window_content = MainWindowContent()
         self.window_sidebar = MainWindowSideBar()
+        self.window_sidebar.set_clicked(self.__update_tab) 
 
         layout.addWidget(self.window_sidebar, stretch=1)
         layout.addWidget(self.window_content, stretch=3)
@@ -66,6 +90,9 @@ class MainWindow(QMainWindow):
         qss_stream = QTextStream(qss_file)
         self.setStyleSheet(qss_stream.readAll())
         qss_file.close()
+    
+    def __update_tab(self, tab_name):
+        self.window_content.update_tab(tab_name)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
