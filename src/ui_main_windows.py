@@ -2,7 +2,8 @@ import sys
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, 
     QWidget, QHBoxLayout, QVBoxLayout, 
-    QPushButton, QStackedLayout, QButtonGroup)
+    QPushButton, QStackedLayout, QButtonGroup,
+    QScrollArea)
 from PyQt5.QtCore import QFile, QTextStream, Qt
 
 
@@ -24,7 +25,7 @@ class SideBarElement(QPushButton):
         self.setText(text)
         self.setCheckable(True)
     
-    def set_clicked(self, func):
+    def set_clicked_action(self, func):
         # self.clicked.connect(lambda: func(self.name))
         self.clicked.connect(func)
     
@@ -50,9 +51,9 @@ class MainWindowSideBar(QWidget):
         layout.addStretch()
         self.setLayout(layout)
 
-    def set_clicked(self, func):
+    def set_clicked_action(self, func):
         for element in self.elements:
-            element.set_clicked(func)
+            element.set_clicked_action(func)
     
     def __clicked(self):
         sender = self.sender()
@@ -60,13 +61,24 @@ class MainWindowSideBar(QWidget):
             element.setChecked(False)
         sender.setChecked(True)
 
-class ContentHome(QLabel):
+class ContentHome(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("ContentHome")
         self.setProperty("parent", "MainWindowContent")
-        self.setText("Home")
+
         self.layout = QVBoxLayout()
+        self.layout.addWidget(QLabel("Home"))
+        self.layout.addWidget(QPushButton("Run"))
+        
+        self.layout.addStretch()
+        self.setLayout(self.layout)
+        btn = self.layout.itemAt(1).widget()
+        # btn.clicked.connect(lambda: print("clicked"))
+    
+    # def __set_background_control(self, func):
+    #     self.layout.itemAt(1).widget().clicked.connect(func)
+        
 
 class ContentHistory(QLabel):
     def __init__(self):
@@ -112,7 +124,7 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout()
         self.window_content = MainWindowContent()
         self.window_sidebar = MainWindowSideBar()
-        self.window_sidebar.set_clicked(self.__update_tab) 
+        self.window_sidebar.set_clicked_action(self.__update_tab) 
 
         layout.addWidget(self.window_sidebar, stretch=1)
         layout.addWidget(self.window_content, stretch=3)
