@@ -47,3 +47,8 @@ QPushButton {
 QLabel {
     color: rgb(0, 0, 0);
 }
+
+QWidget[parent="ContentHistory"] {
+    background-color: #FeFeFe;
+    color: rgb(0, 0, 0);
+}
