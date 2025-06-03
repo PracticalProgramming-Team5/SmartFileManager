@@ -4,34 +4,13 @@ from pydantic import BaseModel, ValidationError, TypeAdapter
 import json
 import logging
 from settings_manager import SettingsManager
+from context_type import ActionCommandList, ActionMove
 from pathlib import Path
 
 """
 JHS
 """
 
-# TODO: 나중에 context_builder.py로 이동
-# json 파싱 형식 정의
-class ActionMove(BaseModel):
-    source: str
-    destination: Tuple[str, ...]
-    explanation: Tuple[str, ...]
-    def __repr__(self):
-        pass # TODO: 프롬프트 입력에 사용될 repr
-
-class ActionCommand(BaseModel):
-    action: str
-    source: str
-    destination: str
-    def __repr__(self):
-        pass # TODO: 프롬프트 입력에 사용될 repr
-
-class ActionCommandList(BaseModel):
-    plan: List[ActionCommand]
-    explanation: str
-    def __repr__(self):
-        pass # TODO: 프롬프트 입력에 사용될 repr
-# =====================================================
 # logger 정의
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 _logger = logging.getLogger("response_parser")
@@ -146,55 +125,3 @@ class ResponseParser:
                 _logger.error(f"unavailable action: {command}")
                 return None
         return commands
-
-# # 예제 코드. SettingsManager 미구현 시 실행 과정에서 오류가 발생함.
-# action_str = """```json{
-#   "plan": [
-#     {
-#       "action": "copy",
-#       "source": "some/source/path",
-#       "destination": "some/dest/path"
-#     },
-#     {
-#       "action": "delete",
-#       "source": "some/source/path",
-#       "destination": ""
-#     }
-#   ],
-#   "explanation": "some/source/path 파일을 some/dest/path로 이동합니다."
-# }
-# ```"""
-# action_str2 = """ {
-#   "plan": [
-#     {
-#       "action": "copy",
-#       "source": "some/source/path",
-#       "destination": "some/dest/path"
-#     },
-#     {
-#       "action": "delete",
-#       "source": "some/source/path",
-#       "destination": ""
-#     }
-#   ],
-#   "explanation": "some/source/path 파일을 some/dest/path로 이동합니다."
-# }
-
-# """
-# move_str = """```json {
-#     "source": "소스 경로",
-#     "destination": ["some/dest/path1", "another/dest/path2", "final/dest/path3"],
-#     "explanation": ["dest/ 하위 폴더이므로 유사함", "dest/ 하위 폴더이므로 유사함", "dest/ 하위 폴더이므로 유사함"]
-# }
-# ```"""
-# move_str2 = """{
-#     "source": "소스 경로",
-#     "destination": ["some/dest/path1", "another/dest/path2", "final/dest/path3"],
-#     "explanation": ["dest/ 하위 폴더이므로 유사함", "dest/ 하위 폴더이므로 유사함", "dest/ 하위 폴더이므로 유사함"]
-# }"""
-# if __name__ == "__main__":
-#     ResponseParser.parse_action_command(action_str)
-#     ResponseParser.parse_action_move(move_str)
-#     print("다른 구조의 응답 파싱")
-#     ResponseParser.parse_action_command(action_str2)
-#     ResponseParser.parse_action_move(move_str2)
