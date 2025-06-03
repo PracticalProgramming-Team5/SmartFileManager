@@ -52,3 +52,12 @@ QWidget[parent="ContentHistory"] {
     background-color: #FeFeFe;
     color: rgb(0, 0, 0);
 }
+
+QWidget[parent="ContentSettings"] {
+    background-color: #FeFeFe;
+    color: rgb(0, 0, 0);
+}
+QListWidget{
+    background-color: #FeFeFe;
+    color: rgb(0, 0, 0);
+}

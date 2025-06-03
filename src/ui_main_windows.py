@@ -3,7 +3,8 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, 
     QWidget, QHBoxLayout, QVBoxLayout, 
     QPushButton, QStackedLayout, QButtonGroup,
-    QScrollArea)
+    QScrollArea, QLineEdit, QFileDialog, QListWidget,
+    QListWidgetItem)
 from PyQt5.QtCore import QFile, QTextStream, Qt
 
 
@@ -185,15 +186,117 @@ class ContentHistory(QWidget):
             if widget:
                 widget.deleteLater()
 
+class SettingsFormApiKey(QWidget):
+    def __init__(self):
+        super().__init__()
 
+        layout = QVBoxLayout(self)
+        
+        input_form = QWidget()
+        # input_form_layout = QHBoxLayout(input_form)
+        # input_form_layout.addWidget(QLabel("발급받은 GPT-4o의 API KEY를 입력합니다."))
+        # self.input = QLineEdit()
+        
+        # input_form_layout.addWidget(self.input)
+        self.input = QLineEdit()
+        layout.addWidget(QLabel("API KEY"))
+        layout.addWidget(QLabel("발급받은 GPT-4o의 API KEY를 입력합니다."))
+        layout.addWidget(self.input)
+        # layout.addWidget(input_form)
 
-class ContentSettings(QLabel):
+    def set_value(self, value):
+        self.input.setText()
+
+    def get_value(self):
+        return self.input.text()
+
+class PathItemWidget(QWidget):
+    def __init__(self, path, remove_callback):
+        super().__init__()
+        layout = QHBoxLayout(self)
+        label = QLabel(path)
+        remove_btn = QPushButton("-")
+        remove_btn.setFixedWidth(20)
+        layout.addWidget(remove_btn)
+        layout.addWidget(label)
+        layout.setContentsMargins(0, 0, 0, 0)
+        remove_btn.clicked.connect(remove_callback)
+
+class SettingsFormAllowedDirectory(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+        
+        self.list_widget = QListWidget()
+        self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        # self.list_widget.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
+        # self.list_widget.setWordWrap(False)
+
+        btn_add = QPushButton("디렉토리 추가")
+        btn_add.clicked.connect(self.__add_dir)
+        
+        layout.addWidget(QLabel("Allowed directories"))
+        layout.addWidget(QLabel("서비스가 접근 가능한 디렉토리를 설정합니다."))
+        layout.addWidget(self.list_widget)
+        layout.addWidget(btn_add)
+        self.__load_values()
+    
+    def __add_dir(self):
+        dir_path = QFileDialog.getExistingDirectory(self, "디렉토리 추가", "")
+        if not dir_path:
+            return
+        item_widget = QListWidgetItem()
+        widget = PathItemWidget(dir_path, lambda: self.__delete_item(item_widget))
+        item_widget.setSizeHint(widget.sizeHint())
+        self.list_widget.addItem(item_widget)
+        self.list_widget.setItemWidget(item_widget, widget)
+
+    def __delete_item(self, item):
+        row = self.list_widget.row(item)
+        self.list_widget.takeItem(row)
+    
+    def __load_values(self):
+        pass
+
+class ContentSettings(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("ContentSettings")
         self.setProperty("parent", "MainWindowContent")
-        self.setText("Settings")
 
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        self.content_widget = QWidget()
+        self.content_widget.setProperty("parent", "ContentSettings")
+
+        self.scroll_area.setWidget(self.content_widget)
+        self.content_layout = QVBoxLayout(self.content_widget)
+        
+        self.form_api_key = SettingsFormApiKey()
+        self.form_allowed_directory = SettingsFormAllowedDirectory()
+        self.form_hot_key = QWidget()
+        self.form_allowed_method = QWidget()
+
+        self.content_layout.addWidget(self.form_api_key)
+        self.content_layout.addWidget(self.form_allowed_directory)
+        self.content_layout.addStretch()
+
+        self.btn_save = QPushButton("Save changes")
+        self.btn_save.clicked.connect(self.__submit_changes)
+        
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.addWidget(self.scroll_area)
+        self.main_layout.addWidget(self.btn_save)
+    
+    def __get_settings_values(self):
+        pass
+
+    def __submit_changes(self):
+        print(self.form_api_key.get_value())
+    
 class MainWindowContent(QWidget):
     def __init__(self):
         super().__init__()
