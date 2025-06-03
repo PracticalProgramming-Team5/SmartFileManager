@@ -202,7 +202,8 @@ class SettingsFormApiKey(QWidget):
         layout.addWidget(QLabel("API KEY"))
         layout.addWidget(QLabel("발급받은 GPT-4o의 API KEY를 입력합니다."))
         layout.addWidget(self.input)
-        # layout.addWidget(input_form)
+
+        self.__load_value()
 
     def __load_value(self):
         api_key = "something"
@@ -215,17 +216,17 @@ class PathItemWidget(QWidget):
     def __init__(self, path, remove_callback):
         super().__init__()
         layout = QHBoxLayout(self)
-        self.label = QLabel(path)
+        label = QLabel(path)
         
         remove_btn = QPushButton("-")
         remove_btn.setFixedWidth(20)
         layout.addWidget(remove_btn)
-        layout.addWidget(self.label)
+        layout.addWidget(label)
         layout.setContentsMargins(0, 0, 0, 0)
         remove_btn.clicked.connect(remove_callback)
-        
+
     def text(self):
-        return self.label.text()
+        return self.layout().itemAt(1).widget().text()
 
 class SettingsFormAllowedDirectory(QWidget):
     def __init__(self):
@@ -315,11 +316,12 @@ class ContentSettings(QWidget):
         self.main_layout.addWidget(self.scroll_area)
         self.main_layout.addWidget(self.btn_save)
     
-    def __get_settings_values(self):
+    def __load_values(self):
         pass
 
     def __submit_changes(self):
         print(self.form_api_key.get_value())
+        print(self.form_allowed_directory.get_value())
     
 class MainWindowContent(QWidget):
     def __init__(self):
