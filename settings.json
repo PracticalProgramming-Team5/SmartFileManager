@@ -1,6 +1,20 @@
 {
-  "api_key": "개인 open-Ai api-key 입력",
+  "api_key": "\uac1c\uc778 open-Ai api-key \uc785\ub825 asdf",
   "model_name": "gpt-4",
-  "available_dirs": ["./"],
-  "available_apis": ["move", "rename", "delete", "create_directory"]
+  "available_dirs": [
+    "C:/Users/JohnDoe/Documents/Projects/Fonts/",
+    "D:/Work/Design/Assets/",
+    "/home/ubuntu/data/fonts/",
+    "/usr/local/share/fonts/",
+    "C:/Program Files/Common Files/MyApp/Rsources/",
+    "/opt/application/resources/fonts/",
+    "/Users/alice/Desktop/FontsCollection/",
+    "E:/Backup/2025_March/Resources/Fonts/"
+  ],
+  "available_apis": [
+    "move",
+    "rename",
+    "delete",
+    "create_directory"
+  ]
 }

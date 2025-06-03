@@ -7,6 +7,9 @@ from PyQt5.QtWidgets import (
     QListWidgetItem)
 from PyQt5.QtCore import QFile, QTextStream, Qt
 
+from settings_manager import SettingsManager
+
+SETTINGS_PATH = "../settings.json"
 
 WIN_MIN_WIDTH = 800
 WIN_MIN_HEIGHT = 600
@@ -206,7 +209,7 @@ class SettingsFormApiKey(QWidget):
         self.__load_value()
 
     def __load_value(self):
-        api_key = "something"
+        api_key = SettingsManager.get('api_key')
         self.input.setText(api_key)
 
     def get_value(self):
@@ -266,16 +269,7 @@ class SettingsFormAllowedDirectory(QWidget):
         self.list_widget.takeItem(row)
     
     def __load_value(self):
-        list_dir_path = [
-            "C:/Users/JohnDoe/Documents/Projects/Fonts/",
-            "D:/Work/Design/Assets/",
-            "/home/ubuntu/data/fonts/",
-            "/usr/local/share/fonts/",
-            "C:/Program Files/Common Files/MyApp/Rsources/",
-            "/opt/application/resources/fonts/",
-            "/Users/alice/Desktop/FontsCollection/",
-            "E:/Backup/2025_March/Resources/Fonts/"
-        ]
+        list_dir_path = SettingsManager.get('available_dirs')
         for path in list_dir_path:
             self.__add_item(path)
 
@@ -289,6 +283,8 @@ class ContentSettings(QWidget):
         super().__init__()
         self.setObjectName("ContentSettings")
         self.setProperty("parent", "MainWindowContent")
+
+        self.settings_manager = SettingsManager(SETTINGS_PATH)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -315,13 +311,12 @@ class ContentSettings(QWidget):
         self.main_layout = QVBoxLayout(self)
         self.main_layout.addWidget(self.scroll_area)
         self.main_layout.addWidget(self.btn_save)
-    
-    def __load_values(self):
-        pass
 
     def __submit_changes(self):
-        print(self.form_api_key.get_value())
-        print(self.form_allowed_directory.get_value())
+        SettingsManager.set('api_key', self.form_api_key.get_value())
+        SettingsManager.set('available_dirs', self.form_allowed_directory.get_value())
+        settings = self.settings_manager.load()
+        self.settings_manager.save(settings)
     
 class MainWindowContent(QWidget):
     def __init__(self):
