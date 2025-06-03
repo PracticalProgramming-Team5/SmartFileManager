@@ -1,4 +1,5 @@
 from typing import Callable
+import json
 
 class UIManager:
     """
@@ -7,113 +8,64 @@ class UIManager:
 
     def __init__(self, core_controller):
         self.core_controller = core_controller
+        self._on_settings_applied_callback = None
+        self._on_command_submit_callback = None
+        self._on_suggestion_accepted_callback = None
+        self._on_undo_clicked_callback = None
 
     def display_main_window(self):
-        print("✅ 메인 창이 표시됩니다. (display_main_window는 임시 함수입니다)")
+        print("✅ 메인 창이 표시됩니다.")
 
     def display_window_settings(self, settings_json: str) -> None:
         """
         설정을 보거나 편집할 수 있는 윈도우를 띄움.
-
-        Args:
-            settings_json: json 형식의 설정 파일
+        여기서는 allowed_dirs 설정 편집 기능을 콘솔 기반으로 간단 구현.
         """
-        pass
+        settings = json.loads(settings_json)
 
+        allowed_dirs = settings.get("allowed_dirs", [])
+        print("현재 허용된 관심 디렉토리:")
+        for d in allowed_dirs:
+            print(f"- {d}")
+
+        # 사용자 입력으로 관심 디렉토리 리스트를 새로 받음 (콤마 구분)
+        new_dirs_input = input("새 허용 관심 디렉토리들을 콤마로 구분하여 입력하세요:\n")
+        new_allowed_dirs = [d.strip() for d in new_dirs_input.split(",") if d.strip()]
+        settings["allowed_dirs"] = new_allowed_dirs
+
+        # 콜백 호출하여 변경 사항 전달
+        if self._on_settings_applied_callback:
+            self._on_settings_applied_callback(json.dumps(settings))
 
     def display_window_suggestions(self, file_path: str, suggestions: list[str]) -> None:
-        """
-        특정 파일에 대해 LLM이 제안한 경로 목록을 보여줌.
-
-        Args:
-            file_path: 대상 파일 경로
-            suggestions: 제안된 경로 목록
-        """
         pass
 
     def display_window_command(self) -> None:
-        """
-        명령 입력 윈도우를 띄움.
-        """
         pass
 
     def display_window_notificaiton(self, message: str, message_type: int) -> None:
-        """
-        알림 창을 띄움.
-
-        Args:
-            message: 표시할 메시지
-            message_type: 메시지 유형 (성공, 알림, 경고, 실패 등.. 상의 필요)
-        """
         pass
 
     def register_on_command_submit(self, callback: Callable[[str], None]):
-        """
-        명령어 입력 이벤트를 처리하는 콜백 함수 등록.
-        
-        Args:
-            callback(command: str) -> None: command 문자열을 받아 처리하는 콜백 함수
-                - command: 사용자가 입력한 명령어
-                
-        """
-        pass
+        self._on_command_submit_callback = callback
 
     def register_on_suggestion_accepted(self, callback: Callable[[str, str], None]):
-        """
-        파일 이동 요청 이벤트를 처리하는 콜백 함수 등록
-        
-        Args:
-            callback(src_pth: str, dst_pth: str) -> None: 파일 이동을 처리하는 콜백 함수
-                - src_pth: 원래 파일 경로
-                - dst_pth: 옮길 파일 경로
-
-        """
-        pass
+        self._on_suggestion_accepted_callback = callback
 
     def register_on_undo_clicked(self, callback: Callable[[], None]):
-        """
-        명령 취소 이벤트를 처리하는 콜백 함수 등록
-        
-        Args:
-            callback() -> None: 최근 명령을 취소하는 콜백 함수
-        """
-        pass
+        self._on_undo_clicked_callback = callback
 
     def register_on_settings_applied(self, callback: Callable[[str], None]):
-        """
-        설정 적용 이벤트를 처리하는 콜백 함수 등록
-        
-        Args:
-            callback(settings_json: str) -> None: settings 변경 사항을 적용하는 콜백 함수
-                setting_json: 설정 파일 내용
-        """
-        pass
-
+        self._on_settings_applied_callback = callback
 
     def _hide_window_settings(self) -> None:
-        """
-        설정을 보거나 편집할 수 있는 윈도우를 닫음.
-
-        Args:
-            settings_json: json 형식의 설정 파일
-        """
         pass
 
-
     def _hide_window_suggestions(self) -> None:
-        """
-        특정 파일에 대해 LLM이 제안한 경로 목록 윈도우를 닫음
-        """
         pass
 
     def _hide_window_command(self) -> None:
-        """
-        명령 입력 윈도우를 닫음.
-        """
         pass
 
     def _hide_window_notificaiton(self) -> None:
-        """
-        알림 창을 닫음.
-        """
         pass

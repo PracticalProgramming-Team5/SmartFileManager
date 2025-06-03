@@ -14,6 +14,10 @@ class SettingsManager:
         else:
             SettingsManager._settings = {}
 
+        # 관심 디렉토리 기본값 예시 (필요시)
+        if "allowed_dirs" not in SettingsManager._settings:
+            SettingsManager._settings["allowed_dirs"] = []
+
     def load(self) -> dict:
         return SettingsManager._settings
 
