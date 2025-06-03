@@ -5,11 +5,11 @@ class UIManager:
     그래픽 사용자 인터페이스(GUI) 요소들을 관리하고 사용자와의 상호작용을 처리합니다.
     """
 
-    def __init__(self):
-        """
-        GUI 구성 요소들을 초기화함.
-        """
-        pass
+    def __init__(self, core_controller):
+        self.core_controller = core_controller
+
+    def display_main_window(self):
+        print("✅ 메인 창이 표시됩니다. (display_main_window는 임시 함수입니다)")
 
     def display_window_settings(self, settings_json: str) -> None:
         """
