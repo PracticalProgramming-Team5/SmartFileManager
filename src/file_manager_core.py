@@ -1,60 +1,73 @@
 class FileManagerCore:
-    """
-    전체 애플리케이션 흐름을 조정하고 다른 모듈들을 초기화 및 관리하는 메인 컨트롤러
-    """
-
     def __init__(self, settings_path):
-        """
-        핵심 구성 요소들을 초기화하고 설정을 불러옵니다.
+        from settings_manager import SettingsManager
+        from filesystem_manager import FileSystemManager
+        from llm_client import LLMClient
+        from history_manager import HistoryManager
+        from context_builder import ContextBuilder
+        from response_parser import ResponseParser
+        from ui_manager import UIManager
 
-        Args:
-            settings_path: 설정 파일의 경로
-        """
-        pass
+        self.settings_manager = SettingsManager(settings_path)
+        self.fs = FileSystemManager()
+        self.history = HistoryManager()
+        self.llm = LLMClient()
+        self.context_builder = ContextBuilder(self.fs)
+        self.response_interpreter = ResponseParser()
+        self.ui = UIManager(self)
 
     def start(self):
-        """디렉토리 모니터링 및 GUI를 시작합니다."""
-        pass
+        self.ui.display_main_window()
 
     def stop(self):
-        """모니터링을 중지하고 자원을 정리합니다."""
-        pass
+        print("앱 종료 및 리소스 정리")
 
     def handle_new_file(self, file_path: str):
-        """
-        DirectoryMonitor에 의해 호출됩니다.
-        컨텍스트(맥락 정보)를 가져오고, LLM에 질의하고,
-        GUI를 통해 제안을 표시하고, 선택된 작업을 실행하는 전체 과정을 조율합니다.
+        file_ctx = self.context_builder.get_file_context(file_path, detail_level="partial")
+        root_dir = os.path.dirname(file_path)
+        dir_structure = self.context_builder.get_directory_structure(root_dir)
 
-        Args:
-            file_path: 새로 생성된 파일 경로
-        """
-        pass
+        prompt = self.context_builder.format_move_prompt(file_ctx, dir_structure)
+
+        response, err = self.llm.query(ContextBuilder.system_prompt_move, prompt)
+        if not response:
+            self.ui.display_results("LLM 응답 오류 발생")
+            return
+
+        suggestions = self.response_interpreter.parse_action_move(response)
+        self.ui.display_path_suggestions(file_path, suggestions)
 
     def handle_natural_language_command(self, command: str):
-        """
-        UIManager에 의해 호출됩니다.
-        명령어를 분석하고, 필요한 경우 LLM에 작업 계획을 질의하고,
-        GUI를 통해 사용자에게 확인받은 후, 계획을 실행하는 과정을 조율합니다.
+        root_dir = os.getcwd()
+        dir_structure = self.context_builder.get_directory_structure(root_dir)
+        prompt = self.context_builder.format_command_prompt(command, dir_structure)
 
-        Args:
-            command: 사용자의 자연어 명령
-        """
-        pass
+        response, err = self.llm.query(ContextBuilder.system_prompt_script, prompt)
+        if not response:
+            self.ui.display_results("LLM 명령 처리 실패")
+            return
+
+        plan = self.response_interpreter.parse_action_command(response)
+        self.ui.display_action_plan(plan)
+
+        confirmed = self.ui.prompt_for_confirmation("작업을 실행할까요?", ["예", "아니오"])
+        if confirmed != "예":
+            return
+
+        if self.fs.execute_plan(plan):
+            for action in plan:
+                self.history.log_action(action)
+            self.ui.display_results("작업 완료")
+        else:
+            self.ui.display_results("작업 실패")
 
     def execute_file_operation(self, operation: dict):
-        """
-        확인된 작업(이동, 이름 변경 등)을 수행하기 위해 FileSystemManager를 호출하고,
-        실행 취소(undo)를 위해 작업 내용을 기록합니다.
-
-        Args:
-            operation: 실행할 파일 작업에 대한 상세 정보를 담은 사전
-        """
-        pass
+        if self.fs.execute_plan([operation]):
+            self.history.log_action(operation)
 
     def undo_last_operation(self):
-        """
-        HistoryManager에서 마지막 작업을 가져와
-        FileSystemManager에게 해당 작업을 되돌리도록 요청합니다.
-        """
-        pass
+        last = self.history.pop_last_action()
+        if last and self.fs.reverse_action(last):
+            self.ui.display_results("작업이 실행 취소되었습니다.")
+        else:
+            self.ui.display_results("실행 취소 실패")

@@ -176,3 +176,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# IntelliJ IDEA 설정 파일 무시
+*.iml
+.idea/

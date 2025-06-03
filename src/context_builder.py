@@ -14,6 +14,7 @@ import mimetypes
 from datetime import datetime
 import base64
 from PIL import Image
+
 # pip install pillows
 
 api_descriptions = {
@@ -29,6 +30,7 @@ api_descriptions = {
     "path_exists": "해당 경로가 존재하는 대상인지 여부를 반환합니다.",
     "mask_expr": "source의 파일명들 중 destination의 표현식과 일치하는 파일명들만을 반환합니다."
 }
+
 
 def _get_item_metadata(file_path: str) -> dict:
     """
@@ -58,13 +60,15 @@ def _get_item_metadata(file_path: str) -> dict:
 
     except Exception as e:
         raise RuntimeError(f"메타데이터 추출 실패: {file_path} ({e})")
-    
+
+
 def encode_image_base64(image_path: str) -> str:
     with open(image_path, "rb") as f:
         encoded = base64.b64encode(f.read()).decode("utf-8")
         mime = "image/jpeg" if image_path.lower().endswith((".jpg", ".jpeg")) else "image/png"
         return f"data:{mime};base64,{encoded}"
-    
+
+
 class ContextBuilder:
     """
     LLM 프롬프트에 필요한 정보를 수집하고 컨텍스트를 생성합니다.
@@ -78,10 +82,10 @@ class ContextBuilder:
         self.fs = filesystem_manager
         self.tag = FileTagDB()
         self.move_context_cache: Dict[str, float] = dict()
-        self.cmd_context_cache: Dict[str, float]= dict()
-        self.cache_boundary = 20 # 20개만 저장
+        self.cmd_context_cache: Dict[str, float] = dict()
+        self.cache_boundary = 20  # 20개만 저장
 
-    def _get_file_context(self, file_path: str, max_size=1024*1024) -> Tuple:
+    def _get_file_context(self, file_path: str, max_size=1024 * 1024) -> Tuple:
         """
         파일의 메타데이터를 추출합니다.
         텍스트의 경우, 텍스트 일부를 반환합니다.
@@ -101,7 +105,7 @@ class ContextBuilder:
             _get_item_metadata(file_path)
         except Exception as e:
             return None, None, None
-        
+
         # detail level
         text_fallback = False
         is_image = file_context["mime_type"].startswith("image/")
@@ -115,7 +119,7 @@ class ContextBuilder:
                 img.save(buf, format=img_format, quality=85)
                 data = buf.getvalue()
                 if len(data) > max_size:
-                    ratio = math.sqrt((max_size / len(data) * 0.5)) # some magic number(0.5)
+                    ratio = math.sqrt((max_size / len(data) * 0.5))  # some magic number(0.5)
                     new_size = (int(img.width * ratio), int(img.height * ratio))
                     img = img.resize(new_size, Image.Resampling.LANCZOS)
                 # 썸네일 생성 후 경로 전달
@@ -133,13 +137,15 @@ class ContextBuilder:
             try:
                 result = kreuzberg.extract_file_sync(file_path)
                 text = result.content
-                if len(text)>max_size:
+                if len(text) > max_size:
                     text = text[:max_size]
                 details = text
-            except Exception as e: # 텍스트 파일이 아니라면 오류 발생
+            except Exception as e:  # 텍스트 파일이 아니라면 오류 발생
                 pass
         return file_context, details, thumbnail
-    def _get_directory_structure(self, include_tags: bool=True, max_depth: int = 5, ex_patterns:list[str]=None) -> str:
+
+    def _get_directory_structure(self, include_tags: bool = True, max_depth: int = 5,
+                                 ex_patterns: list[str] = None) -> str:
         """
         디렉토리 구조의 표현을 생성합니다.
 
@@ -173,12 +179,12 @@ class ContextBuilder:
                 if include_tags:
                     # 디렉토리 태그 가져오기
                     tags = self.tag.get_tags_by_directory(dirpath)
-                    tags_str = "{"+",".join(sorted(tags))+"}"
+                    tags_str = "{" + ",".join(sorted(tags)) + "}"
                     lines.append(f"{current_posix}:{tags_str}")
                 else:
                     # 디렉토리만 가져오기
                     lines.append(current_posix)
-            
+
         return "\n".join(lines)
 
     def format_move_prompt(self, file_path: str, max_depth: int = 5, max_size: int = 1024 * 1024) -> Tuple[str]:
@@ -240,21 +246,21 @@ class ContextBuilder:
             f"[예시 2]\n{repr(EXAMPLE_PAYLOAD_2)}\n"
         )
         return self.system_prompt_script, user_prompt
-    
+
     system_prompt_script = "당신은 파일 시스템 자동화 스크립트 생성 전문가입니다.\n" \
-        "사용자가 제공하는 API들을 하나 이상 조합해 파일 이동·복사·삭제 등 파일 시스템 작업을 수행하는 스크립트를 작성해 주세요.\n" \
-        "생성된 스크립트가 어떤 역할을 어떻게 수행하는지 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
-        "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
-        "```json\n" \
-        f"{repr(EXAMPLE_PAYLOAD)}\n" \
-        "```"
-    
+                           "사용자가 제공하는 API들을 하나 이상 조합해 파일 이동·복사·삭제 등 파일 시스템 작업을 수행하는 스크립트를 작성해 주세요.\n" \
+                           "생성된 스크립트가 어떤 역할을 어떻게 수행하는지 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
+                           "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
+                           "```json\n" \
+                           f"{repr(EXAMPLE_PAYLOAD)}\n" \
+                           "```"
+
     system_prompt_move = "당신은 파일 분류·정리 전문가입니다.\n" \
-        "새로 전달된 파일의 이름·메타데이터·일부 내용을 바탕으로 이 파일을 최대한 표현할 수 있는 태그들을 10개 생성하고\n" \
-        "사용자의 전체 디렉토리 구조와 각 디렉토리에 속한 파일들의 태그(이전에 당신이 생성한 태그들)·메타데이터·이름을 통해 디렉토리 관계를 이해한 후,\n" \
-        "새로 전달된 파일의 적절한 저장 위치(디렉토리 경로) 3개를 추천해 주세요.\n" \
-        "해당 경로를 추천하는 이유를 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
-        "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
-        "```json\n" \
-        f"{repr(EXAMPLE_PAYLOAD2)}\n" \
-        "```"
+                         "새로 전달된 파일의 이름·메타데이터·일부 내용을 바탕으로 이 파일을 최대한 표현할 수 있는 태그들을 10개 생성하고\n" \
+                         "사용자의 전체 디렉토리 구조와 각 디렉토리에 속한 파일들의 태그(이전에 당신이 생성한 태그들)·메타데이터·이름을 통해 디렉토리 관계를 이해한 후,\n" \
+                         "새로 전달된 파일의 적절한 저장 위치(디렉토리 경로) 3개를 추천해 주세요.\n" \
+                         "해당 경로를 추천하는 이유를 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
+                         "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
+                         "```json\n" \
+                         f"{repr(EXAMPLE_PAYLOAD2)}\n" \
+                         "```"
