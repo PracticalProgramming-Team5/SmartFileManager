@@ -204,8 +204,9 @@ class SettingsFormApiKey(QWidget):
         layout.addWidget(self.input)
         # layout.addWidget(input_form)
 
-    def set_value(self, value):
-        self.input.setText()
+    def __load_value(self):
+        api_key = "something"
+        self.input.setText(api_key)
 
     def get_value(self):
         return self.input.text()
@@ -214,13 +215,17 @@ class PathItemWidget(QWidget):
     def __init__(self, path, remove_callback):
         super().__init__()
         layout = QHBoxLayout(self)
-        label = QLabel(path)
+        self.label = QLabel(path)
+        
         remove_btn = QPushButton("-")
         remove_btn.setFixedWidth(20)
         layout.addWidget(remove_btn)
-        layout.addWidget(label)
+        layout.addWidget(self.label)
         layout.setContentsMargins(0, 0, 0, 0)
         remove_btn.clicked.connect(remove_callback)
+        
+    def text(self):
+        return self.label.text()
 
 class SettingsFormAllowedDirectory(QWidget):
     def __init__(self):
@@ -234,30 +239,49 @@ class SettingsFormAllowedDirectory(QWidget):
         # self.list_widget.setWordWrap(False)
 
         btn_add = QPushButton("디렉토리 추가")
-        btn_add.clicked.connect(self.__add_dir)
+        btn_add.clicked.connect(self.__open_path_explorer)
         
         layout.addWidget(QLabel("Allowed directories"))
         layout.addWidget(QLabel("서비스가 접근 가능한 디렉토리를 설정합니다."))
         layout.addWidget(self.list_widget)
         layout.addWidget(btn_add)
-        self.__load_values()
+        self.__load_value()
     
-    def __add_dir(self):
+    def __open_path_explorer(self):
         dir_path = QFileDialog.getExistingDirectory(self, "디렉토리 추가", "")
         if not dir_path:
             return
+        self.__add_item(dir_path)
+    
+    def __add_item(self, path):
         item_widget = QListWidgetItem()
-        widget = PathItemWidget(dir_path, lambda: self.__delete_item(item_widget))
+        widget = PathItemWidget(path, lambda: self.__delete_item(item_widget))
         item_widget.setSizeHint(widget.sizeHint())
         self.list_widget.addItem(item_widget)
         self.list_widget.setItemWidget(item_widget, widget)
-
+    
     def __delete_item(self, item):
         row = self.list_widget.row(item)
         self.list_widget.takeItem(row)
     
-    def __load_values(self):
-        pass
+    def __load_value(self):
+        list_dir_path = [
+            "C:/Users/JohnDoe/Documents/Projects/Fonts/",
+            "D:/Work/Design/Assets/",
+            "/home/ubuntu/data/fonts/",
+            "/usr/local/share/fonts/",
+            "C:/Program Files/Common Files/MyApp/Rsources/",
+            "/opt/application/resources/fonts/",
+            "/Users/alice/Desktop/FontsCollection/",
+            "E:/Backup/2025_March/Resources/Fonts/"
+        ]
+        for path in list_dir_path:
+            self.__add_item(path)
+
+    def get_value(self):
+        list_allowed_path = [self.list_widget.itemWidget(self.list_widget.item(i)).text() for i in range(self.list_widget.count())]
+        return list_allowed_path
+
 
 class ContentSettings(QWidget):
     def __init__(self):
