@@ -11,7 +11,7 @@ class FileManagerCore:
         from response_parser import ResponseParser
         from ui_manager import UIManager
 
-        self.settings_manager = SettingsManager(settings_path)
+        #self.settings_manager = SettingsManager(settings_path)
         self.fs = FileSystemManager()
         self.history = HistoryManager()
         self.llm = LLMClient()
