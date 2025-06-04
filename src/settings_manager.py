@@ -1,31 +1,56 @@
 import json
 import os
-from typing import Any
+from typing import Any, Optional, List
 
 class SettingsManager:
-    _settings = {}
-    _settings_file_path = None
+    _settings_file = "settings.json"
 
-    def __init__(self, settings_file_path: str):
-        SettingsManager._settings_file_path = settings_file_path
-        if os.path.exists(settings_file_path):
-            with open(settings_file_path, "r", encoding="utf-8") as f:
-                SettingsManager._settings = json.load(f)
-        else:
-            SettingsManager._settings = {}
+    @classmethod
+    def _load(cls) -> dict:
+        if os.path.exists(cls._settings_file):
+            try:
+                with open(cls._settings_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except json.JSONDecodeError:
+                print("⚠️ settings.json 파일이 JSON 형식이 아닙니다.")
+        return {
+            "allow_commands": [],
+            "block_commands": [],
+            "interest_commands": []
+        }
 
-    def load(self) -> dict:
-        return SettingsManager._settings
+    @classmethod
+    def _save(cls, settings: dict) -> None:
+        with open(cls._settings_file, 'w', encoding='utf-8') as f:
+            json.dump(settings, f, indent=2, ensure_ascii=False)
 
-    def save(self, settings: dict):
-        SettingsManager._settings = settings
-        with open(SettingsManager._settings_file_path, "w", encoding="utf-8") as f:
-            json.dump(settings, f, indent=2)
+    @classmethod
+    def get(cls, key: str) -> Optional[Any]:
+        settings = cls._load()
+        return settings.get(key)
 
-    @staticmethod
-    def get(key: str, default=None) -> Any:
-        return SettingsManager._settings.get(key, default)
+    @classmethod
+    def set(cls, key: str, value: Any) -> None:
+        settings = cls._load()
+        settings[key] = value
+        cls._save(settings)
 
-    @staticmethod
-    def set(key: str, value: Any):
-        SettingsManager._settings[key] = value
+    @classmethod
+    def delete(cls, key: str) -> None:
+        settings = cls._load()
+        if key in settings:
+            del settings[key]
+            cls._save(settings)
+
+    @classmethod
+    def get_allowed_commands(cls) -> List[str]:
+        return cls.get("allow_commands") or []
+
+    @classmethod
+    def get_blocked_commands(cls) -> List[str]:
+        return cls.get("block_commands") or []
+
+    @classmethod
+    def get_interested_commands(cls) -> List[str]:
+        return cls.get("interest_commands") or []
+
