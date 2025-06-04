@@ -325,8 +325,8 @@ class SettingsFormAllowedAction(QWidget):
         layout.addWidget(QLabel("LLM이 수행 가능한 동작을 관리합니다. (클릭으로 수정하기)"))
         layout.addWidget(self.list_widget)
         layout.addWidget(QLabel("허용: 해당 명령을 허용합니다."))
-        layout.addWidget(QLabel("관심: 해당 명령이 포함 되는 경우, 사용자에게 경고 합니다."))
-        layout.addWidget(QLabel("차단: 해당 명령이 포함 되는 경우, 해당 동작을 차단 합니다."))
+        layout.addWidget(QLabel("관심: 해당 명령이 포함 되는 경우 사용자에게 경고 합니다."))
+        layout.addWidget(QLabel("차단: 해당 명령이 포함 되는 경우 해당 동작을 차단 합니다."))
         self.__load_value()
     
     def __add_item(self, action):
