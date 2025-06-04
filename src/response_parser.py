@@ -77,11 +77,11 @@ class ResponseParser:
             val_data = ResponseParser.actionmove_adapter.validate_json(json_block)
             command = val_data.model_dump()
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
-            return f"cannot parse llm response: {e}", True
+            return f"cannot parse llm response: {e}", False
         
         if (result:= _check_command({'move'}, command)):
-            return result, True
-        return command, False
+            return result, False
+        return command, True
 
     @staticmethod
     def parse_action_command(llm_response: str) -> Optional[ActionCommandList]:
@@ -99,10 +99,10 @@ class ResponseParser:
             val_data = ResponseParser.actionlist_adapter.validate_json(json_block)
             commands = val_data.model_dump()
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
-            return f"cannot parse llm response: {e}", True
+            return f"cannot parse llm response: {e}", False
         
         restrict = SettingsManager.get("available_apis")
         for command in commands['plan']:
             if (result:= _check_command(restrict, command)):
-                return result, True
-        return commands, False
+                return result, False
+        return commands, True

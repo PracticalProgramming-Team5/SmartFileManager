@@ -200,10 +200,10 @@ class ContextBuilder:
             Tuple: system, user
 
         Error:
-            Tuple: None, err_msg
+            Tuple: err_msg, None
         """
         file_context, details, thumbnail = self._get_file_context(file_path, max_size)
-        if file_context == None: return None, f"fail to get file:{file_path}"
+        if file_context == None: return f"fail to get file:{file_path}", None
         directory_structure = self._get_directory_structure(max_depth=max_depth)
 
         # image file
