@@ -2,7 +2,6 @@ import re
 from typing import List, Dict, Tuple, Sequence, Optional
 from pydantic import BaseModel, ValidationError, TypeAdapter
 import json
-import logging
 from settings_manager import SettingsManager
 from context_type import ActionCommandList, ActionMove
 from pathlib import Path
@@ -10,16 +9,6 @@ from pathlib import Path
 """
 JHS
 """
-
-# logger 정의
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-_logger = logging.getLogger("response_parser")
-if not _logger.handlers:
-    handler = logging.FileHandler("response_parser.log")
-    handler.setFormatter(formatter)
-    _logger.addHandler(handler)
-    _logger.setLevel(logging.INFO)
-    _logger.propagate = False
 
 def _extract_json(text: str) -> str:
     """
@@ -41,8 +30,7 @@ def _check_command(restrict : Tuple, cmd : Dict) -> bool:
     """
     action = cmd.get("action")
     if action and action not in restrict:
-        _logger.error(f"unavailable action: {action}")
-        return False
+        return f"unavailable action: {action}"
     
     observing_dirs = SettingsManager.get("available_dirs")
     base_paths = [Path(d).resolve() for d in observing_dirs]
@@ -56,14 +44,13 @@ def _check_command(restrict : Tuple, cmd : Dict) -> bool:
             paths = [k]
         elif isinstance(k, Sequence):
             paths = k
-        else: return False
+        else: return f"cannot parse paths: {paths}"
 
         for p in paths:
             p=Path(p).resolve()
             if not any(p.is_relative_to(base) for base in base_paths):
-                _logger.error(f"unavailable path: {p}")
-                return False
-    return True
+                return f"unavailable path: {p}"
+    return False
 
 class ResponseParser:
     """
@@ -83,21 +70,18 @@ class ResponseParser:
             llm_response(str): LLM으로부터 받은 응답
 
         Returns:
-            ActionMove(Dict[str,any]): 추출된 추천 경로 or None
+            Tuple: return_value, is_err_msg
         """
         try:
             json_block = _extract_json(llm_response)
             val_data = ResponseParser.actionmove_adapter.validate_json(json_block)
             command = val_data.model_dump()
-            # print(command)
-            # print(type(command))
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
-            _logger.error(f"{type(e).__name__}: {e}")
-            return None
-        if not _check_command({'move'}, command): 
-            _logger.error(f"unavailable action: {command}")
-            return None
-        return command
+            return f"cannot parse llm response: {e}", False
+        
+        if (result:= _check_command({'move'}, command)):
+            return result, False
+        return command, True
 
     @staticmethod
     def parse_action_command(llm_response: str) -> Optional[ActionCommandList]:
@@ -108,20 +92,17 @@ class ResponseParser:
             llm_response(str): LLM으로부터 받은 응답
 
         Returns:
-            ActionCommandList(Dict[str,any]): 추출된 명령어 구문 | None
+            Tuple: return_value, is_err_msg
         """
         try:
             json_block = _extract_json(llm_response)
             val_data = ResponseParser.actionlist_adapter.validate_json(json_block)
             commands = val_data.model_dump()
-            # print(commands)
-            # print(type(commands))
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
-            _logger.error(f"{type(e).__name__}: {e}")
-            return None
+            return f"cannot parse llm response: {e}", False
+        
         restrict = SettingsManager.get("available_apis")
         for command in commands['plan']:
-            if not _check_command(restrict, command):
-                _logger.error(f"unavailable action: {command}")
-                return None
-        return commands
+            if (result:= _check_command(restrict, command)):
+                return result, False
+        return commands, True
