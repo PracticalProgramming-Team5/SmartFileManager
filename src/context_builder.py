@@ -198,9 +198,12 @@ class ContextBuilder:
 
         Returns:
             Tuple: system, user
+
+        Error:
+            Tuple: None, err_msg
         """
         file_context, details, thumbnail = self._get_file_context(file_path, max_size)
-        if file_context == None: raise FileExistsError(f"file not exists:{file_path}")
+        if file_context == None: return None, f"fail to get file:{file_path}"
         directory_structure = self._get_directory_structure(max_depth=max_depth)
 
         # image file
@@ -212,7 +215,7 @@ class ContextBuilder:
             content = f"[파일 본문 일부]\n{details}\n\n"
         # fallback
         else:
-            content = "[내용 없음]\n\n"
+            content = "[파일 정보 없음]\n\n"
         user_prompt = (
             f"아래는 사용자가 분류하려는 파일에 대한 정보입니다. 내용을 참고하세요.\n\n"
             f"{content}\n\n"
@@ -229,7 +232,7 @@ class ContextBuilder:
             user_command: 사용자의 자연어 명령
 
         Returns:
-            system, user
+            Tuple: system, user
         """
         api_list = self.fs.get_api_list()
         api_guide_lines = []
