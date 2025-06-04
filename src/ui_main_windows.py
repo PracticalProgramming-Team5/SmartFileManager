@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QStackedLayout, QButtonGroup,
     QScrollArea, QLineEdit, QFileDialog, QListWidget,
     QListWidgetItem)
-from PyQt5.QtCore import QFile, QTextStream, Qt
+from PyQt5.QtCore import QFile, QTextStream, Qt, pyqtSignal
 
 from settings_manager import SettingsManager
 
@@ -277,6 +277,73 @@ class SettingsFormAllowedDirectory(QWidget):
         list_allowed_path = [self.list_widget.itemWidget(self.list_widget.item(i)).text() for i in range(self.list_widget.count())]
         return list_allowed_path
 
+class ActionItemWidget(QWidget):
+    clicked = pyqtSignal()
+
+    def __init__(self, action):
+        super().__init__()
+        layout = QHBoxLayout(self)
+        label = QLabel(action)
+        self.label_state = QLabel("허용")
+        layout.addWidget(label, alignment=Qt.AlignLeft)
+        layout.addWidget(self.label_state, alignment=Qt.AlignRight)
+        self.clicked.connect(self.change_state)
+        layout.setContentsMargins(0, 0, 0, 0)
+        # remove_btn.clicked.connect(remove_callback)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
+
+    def change_state(self):
+        if self.label_state.text() == "허용":
+            self.label_state.setText("관심")
+        elif self.label_state.text() == "관심":
+            self.label_state.setText("차단")
+        else:
+            self.label_state.setText("허용")
+
+    def get_value(self):
+        return self.layout().itemAt(1).widget().text()
+
+class SettingsFormAllowedAction(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+        
+        self.list_widget = QListWidget()
+        self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        # self.list_widget.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
+        # self.list_widget.setWordWrap(False)
+
+        # btn_add = QPushButton("디렉토리 추가")
+        # btn_add.clicked.connect(self.__open_path_explorer)
+        
+        layout.addWidget(QLabel("Allowed actions"))
+        layout.addWidget(QLabel("LLM이 수행 가능한 동작을 관리합니다. (클릭으로 수정하기)"))
+        layout.addWidget(self.list_widget)
+        layout.addWidget(QLabel("허용: 해당 명령을 허용합니다."))
+        layout.addWidget(QLabel("관심: 해당 명령이 포함 되는 경우, 사용자에게 경고 합니다."))
+        layout.addWidget(QLabel("차단: 해당 명령이 포함 되는 경우, 해당 동작을 차단 합니다."))
+        self.__load_value()
+    
+    def __add_item(self, action):
+        item_widget = QListWidgetItem()
+        widget = ActionItemWidget(action)
+        item_widget.setSizeHint(widget.sizeHint())
+        self.list_widget.addItem(item_widget)
+        self.list_widget.setItemWidget(item_widget, widget)
+    
+    def __load_value(self):
+        list_dir_path = SettingsManager.get('available_apis')
+        for action in list_dir_path:
+            self.__add_item(action)
+
+    def get_value(self):
+        list_allowed_path = [self.list_widget.itemWidget(self.list_widget.item(i)).text() for i in range(self.list_widget.count())]
+        return list_allowed_path
 
 class ContentSettings(QWidget):
     def __init__(self):
@@ -299,10 +366,11 @@ class ContentSettings(QWidget):
         self.form_api_key = SettingsFormApiKey()
         self.form_allowed_directory = SettingsFormAllowedDirectory()
         self.form_hot_key = QWidget()
-        self.form_allowed_method = QWidget()
+        self.form_allowed_method = SettingsFormAllowedAction()
 
         self.content_layout.addWidget(self.form_api_key)
         self.content_layout.addWidget(self.form_allowed_directory)
+        self.content_layout.addWidget(self.form_allowed_method)
         self.content_layout.addStretch()
 
         self.btn_save = QPushButton("Save changes")
