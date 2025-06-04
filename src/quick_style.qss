@@ -1,0 +1,8 @@
+QuickInput {
+    outline: none;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    color: #000000;
+    font-size: 24px;
+}
