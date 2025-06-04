@@ -1,8 +1,116 @@
 QuickInput {
     outline: none;
     background-color: #f0f0f0;
+    /* background-color: #f0f0f0; */
     border: 1px solid #ccc;
     border-radius: 10px;
     color: #000000;
     font-size: 24px;
+    padding-left: 10px;
+}
+
+LLMStatusWidget {
+    outline: none;
+    background-color:rgb(237, 237, 237);
+    /* background-color:rgb(225, 225, 225); */
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    color: #000000;
+    font-size: 24px; 
+}
+
+QLabel {
+    color: #000000;
+} 
+
+FocusableBtn {
+    border: 2px solid #888;
+    border-radius: 5px;
+    padding: 6px;
+    background-color: #f0f0f0;
+    color: #000000;
+}
+
+FocusableBtn:focus {
+    border: 2px solid #0078D7;
+    background-color: #e6f2ff;
+    outline: none;
+}
+
+FocusableBtn:disabled {
+    border: 2px solid #ccc;
+    color:rgb(176, 176, 176);
+
+}
+
+#ScrollableLabel {
+    color: #000000;
+    outline: none;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    margin: 3px;
+
+}
+
+QScrollArea {
+    color: #000000;
+    outline: none;
+    background-color: #f0f0f0;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+
+}
+
+/******************** 스크롤바 OS 의존적이지 않도록 ********************/
+QScrollBar:vertical, QScrollBar:horizontal {
+    background: transparent;
+    border: none;
+    margin: 0px;
+}
+
+/* 수직 스크롤바 */
+QScrollBar:vertical {
+    width: 8px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #555;
+    min-height: 30px;
+    border-radius: 1px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #111;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+    border: none;
+    background: none;
+}
+
+/* 수평 스크롤바 */
+QScrollBar:horizontal {
+    height: 8px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #888;
+    min-width: 30px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #555;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0px;
+    border: none;
+    background: none;
+}
+
+/* 빈 공간 스타일 제거 */
+QScrollBar::add-page, QScrollBar::sub-page {
+    background: none;
 }
