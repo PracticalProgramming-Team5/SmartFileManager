@@ -22,7 +22,34 @@ def _extract_json(text: str) -> str:
     if match: return match.group(1)
     raise ValueError("no json block in response str.")
 
-def _check_command(restrict : Tuple, cmd : Dict) -> bool:
+def _check_move(cmd: Dict):
+    """
+    해석된 명령이 타당한지 검사
+    1. 태그가 중복이 없고 10개로 이루어져 있는가?
+    2. destination이 3개이며 전부 감시 중인 디렉토리의 하위 폴더인가?
+    3. explanation이 3개인가?
+    """
+    tags = set(cmd.get("tags"))
+    dest = cmd.get("destination")
+    explanation = cmd.get("explanation")
+    observing_dirs = SettingsManager.get("available_dirs")
+    base_paths = [Path(d).resolve() for d in observing_dirs]
+
+    if len(tags) != 10:
+        return "wrong tags"
+    if not isinstance(dest, list) or len(dest) != 3:
+        return "wrong destination"
+    for d in dest:
+        d = Path(d).resolve()
+        if not any(d.is_relative_to(base) for base in base_paths):
+            return f"unavailable path: {d}"
+        
+    if not isinstance(explanation, list) or len(explanation) != 3:
+        return "wrong explanation"
+    return False
+
+
+def _check_command(restrict : Tuple, cmd : Dict):
     """
     해석된 명령이 타당한지 검사
     1. action이 허용된 api로만 구성되는가?
@@ -37,9 +64,8 @@ def _check_command(restrict : Tuple, cmd : Dict) -> bool:
 
     for key in ("source", "destination"):
         k = cmd.get(key)
-        if not k: continue
-
         paths = None
+
         if isinstance(k, str):
             paths = [k]
         elif isinstance(k, Sequence):
@@ -79,7 +105,7 @@ class ResponseParser:
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
             return f"cannot parse llm response: {e}", False
         
-        if (result:= _check_command({'move'}, command)):
+        if (result:= _check_move(command)):
             return result, False
         return command, True
 
