@@ -10,26 +10,12 @@ import fnmatch
 import json
 from tagdb import FileTagDB
 from settings_manager import SettingsManager
+from filesystem_manager import FileSystemManager
 import mimetypes
 from datetime import datetime
 import base64
 from PIL import Image
-
 # pip install pillows
-
-api_descriptions = {
-    # TODO: source, destination, result에 대한 명시적인 설명
-    # TODO: filesystem_manager.py로 이동
-    "move": "source 경로의 파일을 destination으로 이동합니다.",
-    "rename": "source 경로의 파일 이름을 destination으로 수정합니다.",
-    "delete": "source 경로의 파일을 삭제합니다.",
-    "create_directory": "source 경로의 디렉토리를 생성합니다.",
-    "get_metadata": "source 경로의 파일의 메타데이터를 가져옵니다.",
-    "list_directory": "source 경로의 디렉토리 하위 파일 및 디렉토리들을 가져옵니다.",
-    "list_directory_recursive": "source 경로의 디렉토리 하위 파일 및 디렉토리들을 재귀적으로 탐색해 가져옵니다.",
-    "path_exists": "해당 경로가 존재하는 대상인지 여부를 반환합니다.",
-    "mask_expr": "source의 파일명들 중 destination의 표현식과 일치하는 파일명들만을 반환합니다."
-}
 
 
 def _get_item_metadata(file_path: str) -> dict:
@@ -75,11 +61,10 @@ class ContextBuilder:
     기대하는 모델: gpt-4o
     """
 
-    def __init__(self, filesystem_manager):
+    def __init__(self):
         """
         생성된 컨텍스트를 캐싱합니다.
         """
-        self.fs = filesystem_manager
         self.tag = FileTagDB()
         self.move_context_cache: Dict[str, float] = dict()
         self.cmd_context_cache: Dict[str, float] = dict()
@@ -234,10 +219,10 @@ class ContextBuilder:
         Returns:
             Tuple: system, user
         """
-        api_list = self.fs.get_api_list()
+        api_list = FileSystemManager.get_actions()
         api_guide_lines = []
         for api in api_list:
-            api_guide_lines.append(f"- {api}: {api_descriptions[api]}")
+            api_guide_lines.append(f"{api_list[api][1]}")
         api_guide = "\n".join(api_guide_lines)
         directories = self._get_directory_structure(include_tags=False, max_depth=max_depth)
         user_prompt = (

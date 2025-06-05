@@ -29,15 +29,15 @@ EXAMPLE_PAYLOAD = ActionCommandList(
     plan=[
         ActionCommand(
             action="사용자 제공 API 1",
-            source="some/source/path1",
-            destination="some/dest/path1",
-            result="API 실행 결과를 저장할 변수"
+            source="source 인자",
+            destination="destination 인자",
+            result="API 실행 결과를 저장할 심볼"
         ),
         ActionCommand(
             action="사용자 제공 API 2",
-            source="some/source/path2",
-            destination="some/dest/path2",
-            result="API 2 실행 결과를 저장할 변수"
+            source="source 인자",
+            destination="destination 인자",
+            result="API 실행 결과를 저장할 심볼"
         )
     ],
     explanation="위 스크립트의 동작과정을 한 문장으로 설명"
