@@ -6,9 +6,13 @@
     ],
     "available_commands": [
         "move",
-        "rename"
+        "cp",
+        "rm",
+        "ls",
+        "mkdir",
+        "mask_filename"
     ],
     "interest_commands": [
-        "create_directory"
+        
     ]
 }

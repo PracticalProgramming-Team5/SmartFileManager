@@ -28,16 +28,16 @@ class ActionCommandList(BaseModel):
 EXAMPLE_PAYLOAD = ActionCommandList(
     plan=[
         ActionCommand(
-            action="사용자 제공 API 1",
+            action="커스텀 스크립트 명령어 1",
             source="source 인자",
             destination="destination 인자",
-            result="API 실행 결과를 저장할 심볼"
+            result="명령어 실행 결과를 저장할 심볼"
         ),
         ActionCommand(
-            action="사용자 제공 API 2",
+            action="커스텀 스크립트 명령어 2",
             source="source 인자",
             destination="destination 인자",
-            result="API 실행 결과를 저장할 심볼"
+            result="명령어 실행 결과를 저장할 심볼"
         )
     ],
     explanation="위 스크립트의 동작과정을 한 문장으로 설명"
@@ -57,19 +57,19 @@ EXAMPLE_PAYLOAD2 = ActionMove(
 EXAMPLE_PAYLOAD_ = ActionCommandList(
     plan=[
         ActionCommand(
-            action="list_directory",
+            action="ls",
             source="some/abs/source/picutres",
             destination="",
             result="pictures_files"
         ),
         ActionCommand(
-            action="mask_expr",
+            action="mask_filename",
             source="pictures_files",
             destination="['*.png', '*.jpg', '*.jpeg', '*.webp']",
             result="masked_files"
         ),
         ActionCommand(
-            action="delete",
+            action="rm",
             source="masked_files",
             destination="",
             result=""

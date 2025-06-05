@@ -12,6 +12,7 @@ class FileSystemManager:
             "move": (cls.move, cls.move.__doc__),
             "cp": (cls.cp, cls.cp.__doc__),
             "rm": (cls.rm, cls.rm.__doc__),
+            "ls": (cls.ls, cls.ls.__doc__),
             "mkdir": (cls.mkdir, cls.mkdir.__doc__),
             "mask_filename": (cls.mask_filename, cls.mask_filename.__doc__)
         }
@@ -82,6 +83,32 @@ class FileSystemManager:
             raise ValueError("source가 필요합니다.")
         
         os.makedirs(source, exist_ok=True)
+
+    @classmethod
+    def ls(source, destination: None = None):
+        """
+        명령어: {"action":"ls", "source":"탐색할 디렉토리의 절대 경로", "destination":"Y/N", "result":"결과를 담을 심볼"}
+        설명: 디렉토리 하위 파일을 리스트로 반환합니다. destination 인자에 따라 재귀적으로 탐색할지 여부를 결정합니다.
+        인자: result, action, destination 및 source 인자를 작성하십시오. destination 인자가 'Y'라면 하위 디렉토리를 포함해 재귀적으로 탐색합니다.
+        """
+        if not source or not os.path.isdir(source):
+            raise ValueError("유효한 디렉토리 경로가 아닙니다")
+
+        result_files = []
+
+        recursive = (destination=='Y')
+
+        if recursive:
+            for root, _, files in os.walk(source):
+                for f in files:
+                    result_files.append(os.path.join(root, f))
+        else:
+            for f in os.listdir(source):
+                full_path = os.path.join(source, f)
+                if os.path.isfile(full_path):
+                    result_files.append(full_path)
+
+        return result_files
 
     @classmethod
     def mask_filename(source, destination):
