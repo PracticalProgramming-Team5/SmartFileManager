@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 class FileSystemManager:
     # source 및 destination에는 심볼을 인자로 넘길 수 있으며, [...]와 같이 리스트 형태로 여러 값을 인자로 전달할 수 있습니다.
-    @classmethod
+    @staticmethod
     def get_actions(cls):
         actions: Dict[str, Callable[..., Any]] = {
             "move": (cls.move, cls.move.__doc__),
@@ -18,7 +18,7 @@ class FileSystemManager:
         }
         return actions
 
-    @classmethod
+    @staticmethod
     def move(source: str, destination: str):
         """
         사용법: {"action":"move", "source":"이동할 파일의 절대 경로", "destination":"이동할 절대 경로", "result":""}
@@ -32,7 +32,7 @@ class FileSystemManager:
         
         shutil.move(source, destination)
 
-    @classmethod
+    @staticmethod
     def cp(source, destination):
         """
         사용법: {"action":"cp", "source":"복사할 파일의 절대 경로", "destination":"복사할 절대 경로", "result":""}
@@ -55,7 +55,7 @@ class FileSystemManager:
             else:
                 shutil.copy2(source, destination)
 
-    @classmethod
+    @staticmethod
     def rm(source, destination: None = None):
         """
         사용법: {"action":"rm", "source":"삭제할 파일 또는 디렉토리의 절대 경로", "destination":"", "result":""}
@@ -72,7 +72,7 @@ class FileSystemManager:
             elif os.path.isfile(path):
                 os.remove(path)
 
-    @classmethod
+    @staticmethod
     def mkdir(source, destination: None = None):
         """
         명령어: {"action":"mkdir", "source":"생성할 디렉토리의 절대 경로", "destination":"", "result":""}
@@ -84,7 +84,7 @@ class FileSystemManager:
         
         os.makedirs(source, exist_ok=True)
 
-    @classmethod
+    @staticmethod
     def ls(source, destination: None = None):
         """
         명령어: {"action":"ls", "source":"탐색할 디렉토리의 절대 경로", "destination":"Y/N", "result":"결과를 담을 심볼"}
@@ -110,7 +110,7 @@ class FileSystemManager:
 
         return result_files
 
-    @classmethod
+    @staticmethod
     def mask_filename(source, destination):
         """
         명령어: {"action":"mask_filename", "source":"탐색할 디렉토리의 절대 경로", "destination":"일치하는 파일명을 탐색할 조건(정규표현식)", "result":"결과를 담을 심볼"}
