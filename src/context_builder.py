@@ -62,13 +62,7 @@ class ContextBuilder:
     """
 
     def __init__(self):
-        """
-        생성된 컨텍스트를 캐싱합니다.
-        """
         self.tag = FileTagDB()
-        self.move_context_cache: Dict[str, float] = dict()
-        self.cmd_context_cache: Dict[str, float] = dict()
-        self.cache_boundary = 20  # 20개만 저장
 
     def _get_file_context(self, file_path: str, max_size=1024 * 1024) -> Tuple:
         """
