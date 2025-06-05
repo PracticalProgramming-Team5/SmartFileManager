@@ -101,7 +101,7 @@ class ResponseParser:
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
             return f"cannot parse llm response: {e}", False
         
-        restrict = SettingsManager.get("available_apis")
+        restrict = SettingsManager.get("available_commands")
         for command in commands['plan']:
             if (result:= _check_command(restrict, command)):
                 return result, False

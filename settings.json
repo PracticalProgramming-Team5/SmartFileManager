@@ -1,6 +1,6 @@
 {
     "api_key": "개인 open-Ai api-key 입력",
-    "model_name": "gpt-4",
+    "model_name": "gpt-4o",
     "available_dirs": [
         "./"
     ],
@@ -13,9 +13,6 @@
     "allow_commands": [
         "move",
         "rename"
-    ],
-    "block_commands": [
-        "delete"
     ],
     "interest_commands": [
         "create_directory"

@@ -9,6 +9,9 @@ class ScriptExecuter:
         self.symbols = {}
 
     def resolve(self, value):
+        if isinstance(value, list):
+            return [self.resolve(v) for v in value]
+        
         if value in self.symbols:
             return self.symbols[value]
         return value
@@ -30,5 +33,5 @@ class ScriptExecuter:
             for instruction in script:
                 self.execute_instruction(instruction)
         except Exception as e:
-            return e.__str__
+            return str(e)
         return None

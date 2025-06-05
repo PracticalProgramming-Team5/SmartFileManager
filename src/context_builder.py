@@ -219,10 +219,12 @@ class ContextBuilder:
         Returns:
             Tuple: system, user
         """
+        allowed_list = SettingsManager.get("available_commands")
         api_list = FileSystemManager.get_actions()
-        api_guide_lines = []
-        for api in api_list:
+        api_guide_lines = ["source 및 destination에는 심볼을 인자로 넘길 수 있으며, [...]와 같이 리스트 형태로 여러 값을 인자로 전달할 수 있습니다."]
+        for api in allowed_list:
             api_guide_lines.append(f"{api_list[api][1]}")
+            
         api_guide = "\n".join(api_guide_lines)
         directories = self._get_directory_structure(include_tags=False, max_depth=max_depth)
         user_prompt = (
@@ -238,6 +240,7 @@ class ContextBuilder:
     system_prompt_script = "당신은 파일 시스템 자동화 스크립트 생성 전문가입니다.\n" \
                            "사용자가 제공하는 API들을 하나 이상 조합해 파일 이동·복사·삭제 등 파일 시스템 작업을 수행하는 스크립트를 작성해 주세요.\n" \
                            "생성된 스크립트가 어떤 역할을 어떻게 수행하는지 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
+                           "답변 생성 시, 1500 토큰의 글자수 제한이 있으므로 1500 토큰 이내로 답변하세요.\n" \
                            "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
                            "```json\n" \
                            f"{repr(EXAMPLE_PAYLOAD)}\n" \
@@ -248,6 +251,7 @@ class ContextBuilder:
                          "사용자의 전체 디렉토리 구조와 각 디렉토리에 속한 파일들의 태그(이전에 당신이 생성한 태그들)·메타데이터·이름을 통해 디렉토리 관계를 이해한 후,\n" \
                          "새로 전달된 파일의 적절한 저장 위치(디렉토리 경로) 3개를 추천해 주세요.\n" \
                          "해당 경로를 추천하는 이유를 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
+                         "답변 생성 시, 1500 토큰의 글자수 제한이 있으므로 1500 토큰 이내로 답변하세요.\n" \
                          "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
                          "```json\n" \
                          f"{repr(EXAMPLE_PAYLOAD2)}\n" \
