@@ -134,9 +134,9 @@ class FileTagDB:
         if _is_relative_path(dir_path):
             return set()
 
-        prefix = dir_path.rstrip(os.sep) + os.sep
+        prefix = dir_path.rstrip("/") + "/"
         tags_set: Set[str] = set()
-        # prefix 바로 아래(1단계)만: prefix% 이면서, prefix 길이+1 이후에 os.sep 없을 것
+        # prefix 바로 아래(1단계)만: prefix% 이면서, prefix 길이+1 이후에 / 없을 것
         sql = """
         SELECT tags
         FROM file_tags
@@ -146,7 +146,7 @@ class FileTagDB:
                 ?
             ) = 0
         """
-        params = (prefix + '%', prefix, os.sep)
+        params = (prefix + '%', prefix, "/")
         try:
             cur = self.conn.execute(sql, params)
             for (tags_str,) in cur.fetchall():
@@ -174,47 +174,3 @@ class FileTagDB:
     def close(self):
         """DB 연결 해제"""
         self.conn.close()
-
-# if __name__ == '__main__':
-#     db = FileTagDB(':memory:')
-#     try:
-#         # 1) 파일 추가 및 조회
-#         test_file = os.path.abspath('/tmp/test.txt')
-#         tags = ['alpha', 'beta', 'gamma']
-#         db.add_file(test_file, tags)
-#         assert db.get_tags(test_file) == tags
-#         print('add_file/get_tags: PASS')
-
-#         # 2) 태그 업데이트
-#         new_tags = ['one', 'two']
-#         db.add_file(test_file, new_tags)
-#         assert db.get_tags(test_file) == new_tags
-#         print('update tags: PASS')
-
-#         # 3) 파일명 변경
-#         renamed = os.path.abspath('/tmp/renamed.txt')
-#         db.rename_file(test_file, renamed)
-#         assert db.get_tags(renamed) == new_tags
-#         assert db.get_tags(test_file) == []
-#         print('rename_file: PASS')
-
-#         # 4) 디렉토리 조회 (중복 제거된 태그 집합 반환)
-#         other_file = os.path.abspath('/tmp/subdir/other.log')
-#         other_tags = ['x', 'y']
-#         db.add_file(other_file, other_tags)
-#         tag_set = db.get_tags_by_directory(os.path.abspath('/tmp'))
-#         expected_set = set(new_tags)
-#         print(tag_set)
-#         print(db.get_tags_by_directory(os.path.abspath('/tmp/subdir')))
-#         assert tag_set == expected_set
-#         print('get_tags_by_directory: PASS')
-
-#         # 5) 삭제 기능
-#         assert db.delete_file(renamed) is True
-#         assert db.get_tags(renamed) == []
-#         assert db.delete_file(renamed) is False
-#         print('delete_file: PASS')
-
-#     finally:
-#         print("nice")
-#         db.close()
