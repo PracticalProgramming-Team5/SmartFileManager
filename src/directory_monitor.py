@@ -2,6 +2,7 @@ import os
 
 from typing import Callable, Dict, Optional, Set, Union  # Set 추가
 from watchdog.observers.api import BaseObserver, ObservedWatch
+from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
 from file_manager_core import FileManagerCore
 
@@ -11,9 +12,7 @@ class DirectoryEventHandler(FileSystemEventHandler):
     파일 시스템 이벤트를 처리하는 핸들러 클래스
     """
 
-    def __init__(
-        self, on_file_created_callback: Callable[[str], None], skip_hidden: bool = True
-    ) -> None:
+    def __init__(self, core_controller):
         """
         이벤트 핸들러 초기화
 
@@ -21,9 +20,22 @@ class DirectoryEventHandler(FileSystemEventHandler):
             on_file_created_callback: 파일 생성 시 호출될 콜백 함수
             skip_hidden: 숨김 파일 무시 여부
         """
-        self.on_file_created: Callable[[str], None] = on_file_created_callback
-        self.skip_hidden: bool = skip_hidden
+        self.core = core_controller
 
+    def _check_valid(self, event: FileSystemEvent, flag = True):
+        if event.is_directory: return None
+
+        path = event.src_path if flag else event.dest_path
+        if isinstance(path, bytes):
+            file_path = path.decode()
+        elif isinstance(path, str):
+            file_path = path
+        else: return None
+
+        if os.path.basename(file_path).startswith("."):
+            return None
+        return file_path
+                
     def on_created(self, event: FileSystemEvent) -> None:
         """
         파일 생성 이벤트 처리
@@ -31,21 +43,23 @@ class DirectoryEventHandler(FileSystemEventHandler):
         Args:
             event: 파일 시스템 이벤트 객체
         """
-        if event.is_directory:
-            return
+        file_path = self._check_valid(event)
+        if file_path: self.core.handle_new_file(file_path)
 
-        if isinstance(event.src_path, bytes):
-            file_path: str = event.src_path.decode()
-        elif isinstance(event.src_path, str):
-            file_path: str = event.src_path
-        else:
-            raise ValueError("src_path가 str도 byte도 아님.")
-
-        if self.skip_hidden and os.path.basename(file_path).startswith("."):
-            return
-
-        self.on_file_created(file_path)
         print(f"파일 생성됨: {file_path}")
+
+    def on_deleted(self, event) -> None:
+        file_path = self._check_valid(event)
+        if file_path: self.core.handle_delete_file(file_path)
+
+        print(f"파일 삭제됨: {file_path}")
+
+    def on_moved(self, event) -> None:
+        src_file_path = self._check_valid(event)
+        dest_file_path = self._check_valid(event, False)
+        if src_file_path and dest_file_path: self.core.handle_move_file(src_file_path, dest_file_path)
+
+        print(f"파일 이동됨: {src_file_path} -> {dest_file_path}")
 
 
 class DirectoryMonitor:
@@ -63,19 +77,10 @@ class DirectoryMonitor:
         self.core_controller: FileManagerCore = core_controller
         self.watched_directories: Set[str] = set()
         self.observer: Optional[BaseObserver] = None
-        self.handlers: Dict[
-            str, Dict[str, Union[DirectoryEventHandler, ObservedWatch]]
-        ] = {}
+        self.handler = DirectoryEventHandler(self.core_controller)
         self.running: bool = False
-        self.skip_hidden_files: bool = True
 
     def add_directory(self, path: str) -> None:
-        """
-        감시 목록에 디렉토리를 추가합니다.
-
-        Args:
-            path: 감시할 디렉토리 경로
-        """
         if not os.path.isdir(path):
             print(f"오류: '{path}'는 유효한 디렉토리가 아닙니다.")
             return
@@ -83,8 +88,8 @@ class DirectoryMonitor:
         abs_path: str = os.path.abspath(path)
         self.watched_directories.add(abs_path)
 
-        if self.running and self.observer:
-            self._start_watching_directory(abs_path)
+        if self.running:
+            self.start()
 
     def remove_directory(self, path: str) -> None:
         """
@@ -93,33 +98,18 @@ class DirectoryMonitor:
         Args:
             path: 감시 목록에서 제거할 디렉토리 경로
         """
-        abs_path: str = os.path.abspath(path)
-
+        abs_path = os.path.abspath(path)
         if abs_path in self.watched_directories:
             self.watched_directories.remove(abs_path)
 
-            if self.running and abs_path in self.handlers and self.observer:
-                handler_entry = self.handlers.get(abs_path)
-                if handler_entry:
-                    watch = handler_entry.get("watch")
+            if self.running:
+                self.start()
 
-                    if isinstance(watch, ObservedWatch):
-                        if watch:
-                            self.observer.unschedule(watch)
-                if abs_path in self.handlers:
-                    del self.handlers[abs_path]
-
-            print(f"감시 목록에서 '{path}' 디렉토리를 제거했습니다.")
+        print(f"감시 목록에서 '{path}' 디렉토리를 제거했습니다.")
 
     def start(self) -> None:
-        if self.running:
-            print("이미 디렉토리 감시가 실행 중입니다.")
-            return
-
+        if self.running: self.stop()
         self.observer = Observer()  # type: ignore
-        if not isinstance(self.observer, BaseObserver):  # type: ignore
-            print("오류: Observer가 BaseObserver의 인스턴스가 아닙니다.")
-            return
 
         directory: str
         for directory in self.watched_directories:
@@ -136,52 +126,30 @@ class DirectoryMonitor:
         self.observer.stop()
         self.observer.join()
         self.running = False
-        self.handlers = {}
-
-    def _on_file_created(self, file_path: str) -> None:
-        """
-        새 파일이 감지되었을 때 호출되는 내부 함수;
-        FileManagerCore의 handle_new_file을 호출합니다.
-
-        Args:
-            file_path: 새로 생성된 파일 경로
-        """
-
-        self.core_controller.handle_new_file(file_path)
 
     def _start_watching_directory(self, directory: str) -> None:
-        """
-        지정된 디렉토리에 대한 감시를 시작합니다.
+        self.observer.schedule(self.handler, directory, recursive=True)
 
-        Args:
-            directory: 감시를 시작할 디렉토리 경로
-        """
-        if not self.observer:  # Observer가 초기화되었는지 확인
-            print("오류: Observer가 초기화되지 않았습니다.")
-            return
 
-        # 지역 변수 타입 명시
-        handler: DirectoryEventHandler = DirectoryEventHandler(
-            self._on_file_created, self.skip_hidden_files
-        )
-        # schedule 메소드가 반환하는 watch 객체의 정확한 타입은 watchdog 라이브러리 확인 필요
-        watch: object = self.observer.schedule(handler, directory, recursive=True)
+# import time
 
-        self.handlers[directory] = {"handler": handler, "watch": watch}
+# class DummyCore():
+#     def handle_new_file(self, file_path: str):
+#         print(f"[핸들러 호출됨] 새로운 파일: {file_path}")
+#     def handle_delete_file(self, file_path: str):
+#         print(f"[핸들러 호출됨] 삭제한 파일: {file_path}")
+#     def handle_move_file(self, file_path1: str, file_path2: str):
+#         print(f"[핸들러 호출됨] 이동한 파일: {file_path1} -> {file_path2}")
 
-    def set_skip_hidden_files(self, skip: bool) -> None:
-        """
-        숨김 파일 처리 설정을 변경합니다.
+# if __name__ == "__main__":
+#     monitor = DirectoryMonitor(core_controller=DummyCore())
+#     monitor.add_directory("C:/Users/juhyu/OneDrive/바탕 화면/SmartFileManager")  # 감시할 디렉토리 경로
+#     monitor.start()
 
-        Args:
-            skip: 숨김 파일 무시 여부
-        """
-        self.skip_hidden_files = skip
-
-        # 지역 변수 타입 명시
-        handler_info: Dict[str, Union[DirectoryEventHandler, ObservedWatch]]
-        for handler_info in self.handlers.values():
-            # handler 객체의 타입을 Optional[DirectoryEventHandler]로 명시
-            handler: Optional[DirectoryEventHandler] = handler_info.get("handler")  # type: ignore
-            if handler:
-                handler.skip_hidden = skip
+#     print("디렉토리 감시 시작됨. 새 파일을 만들어 보세요.")
+#     try:
+#         while True:
+#             time.sleep(1)
+#     except KeyboardInterrupt:
+#         print("\n종료 중...")
+#         monitor.stop()
