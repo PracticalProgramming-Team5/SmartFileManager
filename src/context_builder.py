@@ -229,10 +229,10 @@ class ContextBuilder:
         api_guide = "\n".join(api_guide_lines)
         directories = self._get_directory_structure(include_tags=False, max_depth=max_depth)
         user_prompt = (
-            f"아래는 사용자가 요청한 파일시스템 관련 작업내용 및 사용 가능한 API 리스트입니다.\n\n"
+            f"아래는 사용자가 요청한 파일시스템 관련 작업내용 및 사용 가능한 명령어 리스트입니다.\n\n"
             f"[사용자 명령]\n{user_command}\n\n"
             f"[사용자 디렉토리 구조(최대 깊이 {max_depth})]\n{directories}\n\n"
-            f"[사용 가능한 API 리스트]\n{api_guide}\n\n"
+            f"[사용 가능한 명령어 리스트]\n{api_guide}\n\n"
             f"[예시 1]\n{repr(EXAMPLE_PAYLOAD_)}\n"
             f"[예시 2]\n{repr(EXAMPLE_PAYLOAD_2)}\n"
         )
