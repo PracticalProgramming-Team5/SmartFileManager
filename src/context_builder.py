@@ -142,7 +142,8 @@ class ContextBuilder:
         Returns:
             str: directories(w/tags)
         """
-        dirs = SettingsManager.get("observing_dirs")
+        dirs = SettingsManager.get("available_dirs")
+        print(dirs)
         if ex_patterns is None:
             ex_patterns = ['.*']
         lines: list[str] = []
@@ -228,17 +229,17 @@ class ContextBuilder:
         api_guide = "\n".join(api_guide_lines)
         directories = self._get_directory_structure(include_tags=False, max_depth=max_depth)
         user_prompt = (
-            f"아래는 사용자가 요청한 파일시스템 관련 작업내용 및 사용 가능한 API 리스트입니다.\n\n"
+            f"아래는 사용자가 요청한 파일시스템 관련 작업내용 및 사용 가능한 명령어 리스트입니다.\n\n"
             f"[사용자 명령]\n{user_command}\n\n"
             f"[사용자 디렉토리 구조(최대 깊이 {max_depth})]\n{directories}\n\n"
-            f"[사용 가능한 API 리스트]\n{api_guide}\n\n"
+            f"[사용 가능한 명령어 리스트]\n{api_guide}\n\n"
             f"[예시 1]\n{repr(EXAMPLE_PAYLOAD_)}\n"
             f"[예시 2]\n{repr(EXAMPLE_PAYLOAD_2)}\n"
         )
         return self.system_prompt_script, user_prompt
 
     system_prompt_script = "당신은 파일 시스템 자동화 스크립트 생성 전문가입니다.\n" \
-                           "사용자가 제공하는 API들을 하나 이상 조합해 파일 이동·복사·삭제 등 파일 시스템 작업을 수행하는 스크립트를 작성해 주세요.\n" \
+                           "사용자가 제공하는 커스텀 스크립트 명령어들을 하나 이상 조합해 파일 이동·복사·삭제 등 파일 시스템 작업을 수행하는 스크립트를 작성해 주세요.\n" \
                            "생성된 스크립트가 어떤 역할을 어떻게 수행하는지 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
                            "답변 생성 시, 1500 토큰의 글자수 제한이 있으므로 1500 토큰 이내로 답변하세요.\n" \
                            "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
@@ -247,7 +248,7 @@ class ContextBuilder:
                            "```"
 
     system_prompt_move = "당신은 파일 분류·정리 전문가입니다.\n" \
-                         "새로 전달된 파일의 이름·메타데이터·일부 내용을 바탕으로 이 파일을 최대한 표현할 수 있는 태그들을 10개 생성하고\n" \
+                         "새로 전달된 파일의 이름·메타데이터·일부 내용을 바탕으로 이 파일을 적절하게 표현할 수 있는 태그들을 10개 생성하고\n" \
                          "사용자의 전체 디렉토리 구조와 각 디렉토리에 속한 파일들의 태그(이전에 당신이 생성한 태그들)·메타데이터·이름을 통해 디렉토리 관계를 이해한 후,\n" \
                          "새로 전달된 파일의 적절한 저장 위치(디렉토리 경로) 3개를 추천해 주세요.\n" \
                          "해당 경로를 추천하는 이유를 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \

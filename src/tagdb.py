@@ -8,7 +8,7 @@ def _is_relative_path(path: str):
 
 # 파일 경로 정규화
 def _normalize(p: str) -> str:
-    return os.path.normpath(p)
+    return os.path.normpath(p).replace("\\", "/")
 
 class FileTagDB:
     def __init__(self, db_path: str = 'file_tags.db'):

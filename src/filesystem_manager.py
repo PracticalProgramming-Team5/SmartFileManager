@@ -6,18 +6,19 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 class FileSystemManager:
     # source 및 destination에는 심볼을 인자로 넘길 수 있으며, [...]와 같이 리스트 형태로 여러 값을 인자로 전달할 수 있습니다.
-    @classmethod
+    @staticmethod
     def get_actions(cls):
         actions: Dict[str, Callable[..., Any]] = {
             "move": (cls.move, cls.move.__doc__),
             "cp": (cls.cp, cls.cp.__doc__),
             "rm": (cls.rm, cls.rm.__doc__),
+            "ls": (cls.ls, cls.ls.__doc__),
             "mkdir": (cls.mkdir, cls.mkdir.__doc__),
             "mask_filename": (cls.mask_filename, cls.mask_filename.__doc__)
         }
         return actions
 
-    @classmethod
+    @staticmethod
     def move(source: str, destination: str):
         """
         사용법: {"action":"move", "source":"이동할 파일의 절대 경로", "destination":"이동할 절대 경로", "result":""}
@@ -31,7 +32,7 @@ class FileSystemManager:
         
         shutil.move(source, destination)
 
-    @classmethod
+    @staticmethod
     def cp(source, destination):
         """
         사용법: {"action":"cp", "source":"복사할 파일의 절대 경로", "destination":"복사할 절대 경로", "result":""}
@@ -54,7 +55,7 @@ class FileSystemManager:
             else:
                 shutil.copy2(source, destination)
 
-    @classmethod
+    @staticmethod
     def rm(source, destination: None = None):
         """
         사용법: {"action":"rm", "source":"삭제할 파일 또는 디렉토리의 절대 경로", "destination":"", "result":""}
@@ -71,7 +72,7 @@ class FileSystemManager:
             elif os.path.isfile(path):
                 os.remove(path)
 
-    @classmethod
+    @staticmethod
     def mkdir(source, destination: None = None):
         """
         명령어: {"action":"mkdir", "source":"생성할 디렉토리의 절대 경로", "destination":"", "result":""}
@@ -83,7 +84,33 @@ class FileSystemManager:
         
         os.makedirs(source, exist_ok=True)
 
-    @classmethod
+    @staticmethod
+    def ls(source, destination: None = None):
+        """
+        명령어: {"action":"ls", "source":"탐색할 디렉토리의 절대 경로", "destination":"Y/N", "result":"결과를 담을 심볼"}
+        설명: 디렉토리 하위 파일을 리스트로 반환합니다. destination 인자에 따라 재귀적으로 탐색할지 여부를 결정합니다.
+        인자: result, action, destination 및 source 인자를 작성하십시오. destination 인자가 'Y'라면 하위 디렉토리를 포함해 재귀적으로 탐색합니다.
+        """
+        if not source or not os.path.isdir(source):
+            raise ValueError("유효한 디렉토리 경로가 아닙니다")
+
+        result_files = []
+
+        recursive = (destination=='Y')
+
+        if recursive:
+            for root, _, files in os.walk(source):
+                for f in files:
+                    result_files.append(os.path.join(root, f))
+        else:
+            for f in os.listdir(source):
+                full_path = os.path.join(source, f)
+                if os.path.isfile(full_path):
+                    result_files.append(full_path)
+
+        return result_files
+
+    @staticmethod
     def mask_filename(source, destination):
         """
         명령어: {"action":"mask_filename", "source":"탐색할 디렉토리의 절대 경로", "destination":"일치하는 파일명을 탐색할 조건(정규표현식)", "result":"결과를 담을 심볼"}
