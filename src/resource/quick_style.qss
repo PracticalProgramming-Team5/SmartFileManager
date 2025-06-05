@@ -31,11 +31,12 @@ FocusableBtn {
     color: #000000;
 }
 
-FocusableBtn:focus {
+FocusableBtn:focus, FocusableBtn:hover{
     border: 2px solid #0078D7;
     background-color: #e6f2ff;
     outline: none;
 }
+
 
 FocusableBtn:disabled {
     border: 2px solid #ccc;
@@ -43,7 +44,7 @@ FocusableBtn:disabled {
 
 }
 
-#ScrollableLabel {
+#ResponseLabel {
     color: #000000;
     outline: none;
     background-color: #f0f0f0;
