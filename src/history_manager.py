@@ -3,12 +3,12 @@ class HistoryManager:
         self._history = []
         self.__max_history = max_history
 
-    def log(self, action_details: dict):
+    def log(self, action_details: dict) -> None:
         if len(self._history) >= self.__max_history:
             self._history.pop(0)  # 가장 오래된 항목 제거
         self._history.append(action_details)
 
-    def peek(self) -> dict | None:
+    def peek(self) -> list | None:
         if self._history:
             return self._history[-1]
         return None
