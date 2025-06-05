@@ -17,7 +17,12 @@ class HistoryManager:
     @classmethod
     def delete(cls, index) -> None:
         if index >= 0 and cls._history and len(cls._history) > index:
-            del cls._history[index]
+            cls._history.pop(index)
+
+    @classmethod
+    def clear(cls) -> None:
+        if cls._history:
+            cls._history = []
 
     @classmethod
     def get(cls) -> list:
