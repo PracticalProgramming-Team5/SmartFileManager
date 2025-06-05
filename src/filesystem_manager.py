@@ -87,7 +87,7 @@ class FileSystemManager:
     def mask_filename(source, destination):
         """
         명령어: {"action":"mask_filename", "source":"탐색할 디렉토리의 절대 경로", "destination":"일치하는 파일명을 탐색할 조건(정규표현식)", "result":"결과를 담을 심볼"}
-        설명: source 디렉토리로부터 destination 정규표현식에 맞는 파일명들만을 탐색하고 반환합니다.
+        설명: source 디렉토리로부터 재귀적으로 탐색하여, destination 정규표현식에 맞는 파일명들만을 반환합니다.
         인자: action, source, destination, result 인자를 모두 작성하십시오. 
         """
         if not source:
@@ -97,8 +97,11 @@ class FileSystemManager:
         
         pattern = re.compile(destination)
         matched_files = []
-        for fname in os.listdir(source):
-            full_path = os.path.join(source, fname)
-            if os.path.isfile(full_path) and pattern.search(fname):
-                matched_files.append(full_path)
+        
+        for root, dirs, files in os.walk(source):
+            for fname in files:
+                if pattern.search(fname):
+                    full_path = os.path.join(root, fname)
+                    matched_files.append(full_path)
+
         return matched_files
