@@ -87,8 +87,8 @@ class ResponseParser:
     actionlist_adapter = TypeAdapter(ActionCommandList)
     actionmove_adapter = TypeAdapter(ActionMove)
 
-    @staticmethod
-    def parse_action_move(llm_response: str) -> Optional[ActionMove]:
+    @classmethod
+    def parse_action_move(cls, llm_response: str) -> Optional[ActionMove]:
         """
         파일 이동에 대한 LLM 응답을 해석하여 명령어 구문을 반환합니다.
 
@@ -100,7 +100,7 @@ class ResponseParser:
         """
         try:
             json_block = _extract_json(llm_response)
-            val_data = ResponseParser.actionmove_adapter.validate_json(json_block)
+            val_data = cls.actionmove_adapter.validate_json(json_block)
             command = val_data.model_dump()
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
             return f"cannot parse llm response: {e}", False
@@ -109,8 +109,8 @@ class ResponseParser:
             return result, False
         return command, True
 
-    @staticmethod
-    def parse_action_command(llm_response: str) -> Optional[ActionCommandList]:
+    @classmethod
+    def parse_action_command(cls, llm_response: str) -> Optional[ActionCommandList]:
         """
         자연어 명령에 대한 LLM 응답을 해석하여 배치 명령어 구문을 반환합니다.
 
@@ -122,7 +122,7 @@ class ResponseParser:
         """
         try:
             json_block = _extract_json(llm_response)
-            val_data = ResponseParser.actionlist_adapter.validate_json(json_block)
+            val_data = cls.actionlist_adapter.validate_json(json_block)
             commands = val_data.model_dump()
         except (ValueError, ValidationError, json.JSONDecodeError) as e:
             return f"cannot parse llm response: {e}", False
