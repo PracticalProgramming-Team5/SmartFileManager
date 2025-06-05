@@ -4,13 +4,7 @@
     "available_dirs": [
         "./"
     ],
-    "available_apis": [
-        "move",
-        "rename",
-        "delete",
-        "create_directory"
-    ],
-    "allow_commands": [
+    "available_commands": [
         "move",
         "rename"
     ],
