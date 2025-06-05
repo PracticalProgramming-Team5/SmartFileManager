@@ -180,3 +180,6 @@ cython_debug/
 # IntelliJ IDEA 설정 파일 무시
 *.iml
 .idea/
+
+# mac
+.DS_Store
