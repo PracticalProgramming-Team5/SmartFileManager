@@ -5,73 +5,16 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 
 class FileSystemManager:
-    """
-    파일 시스템 작업을 위한 명령어 집합(Instruction Set)을 실행하고 안전하게 수행되도록 보장합니다.
-    이 클래스는 LLM(Large Language Model) 등에 의해 생성된 명령어 스크립트를 받아,
-    각 명령어의 결과를 심볼(symbol)로 저장하고, 이 심볼을 후속 명령어에서 참조하여
-    파이프라이닝(pipelining) 방식으로 파일 시스템 작업을 처리할 수 있도록 설계되었습니다.
-
-    주요 기능:
-    - 명령어 스크립트 기반 파일 시스템 작업 실행
-    - 심볼 테이블을 이용한 결과 파이프라이닝
-    - 작업 실패 시 자동 롤백 기능 (부분적)
-    - 다양한 파일 시스템 작업 지원 (생성, 이동, 이름 변경, 삭제, 메타데이터 조회, 목록 조회)
-
-    사용 예시:
-    ```
-    # 1. FileSystemManager 인스턴스 생성
-    fs_manager = FileSystemManager()
-
-    # 2. 실행할 명령어 스크립트 정의
-    #    각 명령어는 딕셔너리 형태이며, 'action', 'source', 'destination', 'result' 키를 가질 수 있습니다.
-    #    - 'action': 수행할 파일 시스템 작업의 종류 (예: 'create_directory', 'move_file')
-    #    - 'source': 작업의 입력 소스. 실제 경로 문자열이거나, 이전 명령어의 'result'로 생성된 심볼 이름 (예: "$my_dir")
-    #    - 'destination': 작업의 대상 위치 또는 변경될 이름. 실제 경로 문자열이거나 심볼 이름일 수 있습니다.
-    #    - 'result': (선택 사항) 작업 결과를 저장할 심볼의 이름. 이 심볼은 다음 명령어에서 참조 가능합니다.
-    script = [
-        {"action": "create_directory", "source": "/tmp/my_project_root", "result": "project_root"},
-        {"action": "create_directory", "source": "$project_root/data_files", "result": "data_dir"}, # '$project_root' 심볼 참조
-        {"action": "move_file", "source": "/tmp/source_file.txt", "destination": "$data_dir/target_file.txt"}, # '$data_dir' 심볼 참조
-        {"action": "list_directory", "source": "$project_root", "result": "project_contents"}
-    ]
-
-    # 3. 스크립트 실행
-    #    execute_script 메서드는 (성공 여부, 심볼 테이블) 튜플을 반환합니다.
-    success, symbols = fs_manager.execute_script(script)
-
-    # 4. 결과 확인
-    if success:
-        print("스크립트 실행 성공!")
-        print(f"프로젝트 루트의 내용: {symbols.get('project_contents')}")
-        if os.path.exists(symbols.get('data_dir') + "/target_file.txt"):
-            print("파일이 성공적으로 이동되었습니다.")
-    else:
-        print("스크립트 실행 실패, 변경사항이 가능한 범위 내에서 롤백되었습니다.")
-    ```
-    """
-
     def __init__(self, symbol_prefix: str = "$"):
-        """
-        FileSystemManager 인스턴스를 초기화합니다.
-
-        Args:
-            symbol_prefix (str, optional): 명령어 스크립트 내에서 심볼을 식별하는 데 사용되는 접두사입니다.
-                                           기본값은 '$'입니다. 예를 들어, "$my_var"는 'my_var'라는 심볼을 나타냅니다.
-        """
         # 작업 중 생성되는 백업 파일들을 저장할 디렉토리 경로를 설정합니다.
-        # 사용자의 홈 디렉토리 아래 '.smartfilemanager_script_backups'라는 이름으로 생성됩니다.
         self.backup_dir = os.path.join(os.path.expanduser("~"), ".smartfilemanager_script_backups")
         os.makedirs(self.backup_dir, exist_ok=True)  # 백업 디렉토리가 없으면 생성합니다.
 
         # 심볼을 나타내는 접두사를 저장합니다.
         self.symbol_prefix = symbol_prefix
 
-        # 지원하는 action 이름과 실제 실행될 내부 메서드를 매핑하는 딕셔너리입니다.
-        # 키는 LLM이 사용할 action의 이름(문자열)이고, 값은 해당 작업을 수행하는 FileSystemManager의 내부 메서드입니다.
-        # 내부 메서드 이름 앞의 '__'(더블 언더스코어)는 이름 장식(name mangling)을 통해
-        # 하위 클래스와의 이름 충돌을 방지하고, 이 메서드들이 클래스 내부용임을 나타냅니다.
-        self._actions: Dict[str, Callable[..., Any]] = {
-            "move_file": self.__move_file,  # 파일 또는 디렉토리 이동
+        self.actions: Dict[str, Callable[..., Any]] = {
+            "move": self.__move_file,  # 파일 또는 디렉토리 이동
             "rename_item": self.__rename_item,  # 파일 또는 디렉토리 이름 변경
             "delete_item": self.__delete_item,  # 파일 또는 디렉토리 삭제 (백업 생성)
             "create_directory": self.__create_directory,  # 디렉토리 생성
