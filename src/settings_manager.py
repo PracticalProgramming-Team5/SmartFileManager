@@ -3,6 +3,15 @@ import os
 from typing import Any, Optional, List
 
 class SettingsManager:
+    """
+    get(key): key에 대한 value를 반환
+
+    set(key, value): key의 item을 value로 변경
+
+    add(key, item): key의 value에 item 추가
+    
+    delete(key, item): key의 value에 item 제거
+    """
     _settings_file = "settings.json"
 
     @classmethod
@@ -12,10 +21,12 @@ class SettingsManager:
                 with open(cls._settings_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except json.JSONDecodeError:
-                print("⚠️ settings.json 파일이 JSON 형식이 아닙니다.")
+                print("settings.json 파일이 JSON 형식이 아닙니다.")
         return {
-            "allow_commands": [],
-            "block_commands": [],
+            "api_key": "",
+            "model_name": "",
+            "available_dirs": [],
+            "available_commands": [],
             "interest_commands": []
         }
 
@@ -36,21 +47,17 @@ class SettingsManager:
         cls._save(settings)
 
     @classmethod
-    def delete(cls, key: str) -> None:
+    def add(cls, key: str, item: str) -> None:
         settings = cls._load()
-        if key in settings:
-            del settings[key]
-            cls._save(settings)
+        temp_set = set(settings[key])
+        temp_set.add(item)
+        settings[key] = list(temp_set)
+        cls._save(settings)
 
     @classmethod
-    def get_allowed_commands(cls) -> List[str]:
-        return cls.get("allow_commands") or []
-
-    @classmethod
-    def get_blocked_commands(cls) -> List[str]:
-        return cls.get("block_commands") or []
-
-    @classmethod
-    def get_interested_commands(cls) -> List[str]:
-        return cls.get("interest_commands") or []
-
+    def delete(cls, key: str, item:str) -> None:
+        settings = cls._load()
+        temp_set = set(settings[key])
+        temp_set.discard(item)
+        settings[key] = list(temp_set)
+        cls._save(settings)
