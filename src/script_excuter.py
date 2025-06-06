@@ -57,15 +57,23 @@ class ScriptExecuter:
             return str(e)
         return None
         
-    def rollback(self, rollback_list):
+    def rollback(self):
         """
         rollback list를 받아 역순으로 실행시켜 주는 함수
         """
-        for cmd in reversed(rollback_list):
+        for cmd in reversed(self.rollback_list):
             try:
                 action = cmd['action']
                 source = self.resolve(cmd['source'])
                 destination = self.resolve(cmd['destination'])
+                print(self.rollback_list)
                 self.actions[action](source, destination)
             except Exception as e:
                 return f"failed to rollback: {e}"
+            
+        print("rollback!")
+a = ScriptExecuter()
+
+print(a.run_script([{"action":"rm", "source":["C:/Users/juhyu/OneDrive/바탕 화면/sample_data/temp", "C:/Users/juhyu/OneDrive/바탕 화면/sample_data/1week.pdf"], "destination":"", "result":""}]))
+input()
+print(a.rollback())
