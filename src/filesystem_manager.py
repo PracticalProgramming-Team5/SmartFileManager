@@ -9,7 +9,7 @@ class FileSystemManager:
     # source 및 destination에는 심볼을 인자로 넘길 수 있으며, [...]와 같이 리스트 형태로 여러 값을 인자로 전달할 수 있습니다.
     prefix = "fs_rm_backup_"
 
-    @staticmethod
+    @classmethod
     def get_actions(cls):
         actions: Dict[str, Callable[..., Any]] = {
             "move": (cls.move, cls.move.__doc__),
