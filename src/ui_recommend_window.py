@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QScrollArea, QStackedLayout, QListWidget, QListWidgetItem
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer, QFile, QTextStream, QSize
-from PyQt5.QtGui import QCursor, QMovie, QPainter, QLinearGradient, QColor, QBrush
+from PyQt5.QtGui import QCursor, QMovie, QPainter, QLinearGradient, QColor, QBrush, QFontMetrics
 import sys
 from pynput import keyboard
 import platform
@@ -14,6 +14,61 @@ COMBO4 = {keyboard.Key.ctrl, keyboard.KeyCode.from_char('v')} # dummy 이벤트(
 PATH_RESOURCE = "./resource/"
 PATH_STYLE_SHEET = "recommend_style.qss"
 
+class ScrollingLabel(QWidget):
+    def __init__(self, text="", parent=None):
+        super().__init__(parent)
+        self.setObjectName("ScrollingLabel")
+        self.text = text
+        self.scroll_pos = 0
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_scroll)
+        self.setMouseTracking(True)
+        self.setAttribute(Qt.WA_Hover)
+
+    def enterEvent(self, event):
+        if self.text_too_long():
+            self.timer.start(15)
+        return super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.timer.stop()
+        self.scroll_pos = 0
+        self.update()
+        return super().leaveEvent(event)
+
+    def text_too_long(self):
+        fm = QFontMetrics(self.font())
+        return fm.width(self.text) > self.width()
+
+    def update_scroll(self):
+        self.scroll_pos += 1
+        fm = QFontMetrics(self.font())
+        if self.scroll_pos > fm.width(self.text) + 48:
+            self.scroll_pos = 0
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(QColor(255, 255, 255))
+        fm = QFontMetrics(self.font())
+
+        text_width = fm.width(self.text)
+        height = self.height()
+
+        if text_width <= self.width():
+            painter.drawText(4, height // 2 + fm.ascent() // 2, self.text)
+        else:
+            x = -self.scroll_pos
+            while x < self.width():
+                painter.drawText(x+4, height // 2 + fm.ascent() // 2, self.text)
+                x += text_width + 50
+
+        painter.end()
+    
+    def setText(self, text):
+        self.text = text
+        QTimer.singleShot(10, self.update)
 
 class GlobalHotKeyThread(QThread):
     hotkey_pressed = pyqtSignal()
@@ -50,8 +105,9 @@ class GlobalHotKeyThread(QThread):
     def __on_press(self, key):
         self.current_keys.add(key)
         if self.__check_hot_key():
-            self.event_recomend.emit("파일명", ['경로1', '경로2', '경로3'])
+            self.event_recomend.emit("아아아아아아아아아아아아아아아아아아아아아아아주 긴 파일 명", ['동해물과 백두산이 마르고 닳도록 하느님이 보우하사 우리나라', '동해물과 백두산이 마르고', '닳도록 하는님이 봉후ㅏ사 우리나라 만세 무궁화 삼천리 화려강산'])
             # self.hotkey_pressed.emit()
+            # self.event_recomend.emit("파일명", ['경로1', '경로2', '경로3'])
         elif self.__check_close():
             self.close_pressed.emit()
         elif self.__chcek_recommend():
@@ -73,7 +129,7 @@ class SelectableItemWidget(QWidget):
         super().__init__()
         self.setObjectName("SelectableItemWidget")
         self.layout = QHBoxLayout(self)
-        self.label = QLabel(path)
+        self.label = ScrollingLabel(path)
         self.path = path
 
         self.select_btn = QPushButton(">")
@@ -93,8 +149,7 @@ class SelectableItemWidget(QWidget):
         parent = self.parentWidget()
         if parent:
             parent_width = parent.width()
-             
-            self.setMaximumWidth(parent_width)  # 예시
+            self.setMaximumWidth(parent_width)
         super().showEvent(event)
 
     def get_path(self):
@@ -105,9 +160,11 @@ class SelectRecommendWindow(QWidget):
         super().__init__()
         self.setObjectName("SelectRecommendWindow")
         self.layout = QVBoxLayout(self)
-        self.name_label = QLabel()
-        
+        self.name_label = ScrollingLabel()
+        self.name_label.setMinimumHeight(15)
+
         self.list_widget = QListWidget()
+        self.list_widget.setMinimumHeight(10)
         self.list_widget.setAttribute(Qt.WA_StyledBackground, True)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
@@ -116,6 +173,8 @@ class SelectRecommendWindow(QWidget):
         self.layout.addWidget(self.name_label)
         self.layout.addWidget(self.list_widget)
 
+        self.layout.setContentsMargins(0, 11, 0, 0)
+        # self.layout.addWidget(ScrollingLabel("asdasf"))
     def __add_item(self, path):
         item_widget = QListWidgetItem()
         widget = SelectableItemWidget(path, self.__select_item)
@@ -152,9 +211,11 @@ class RecommendWindow(QWidget):
         self.isWinsOs = (platform.system() == "Windows")
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         # self.setAttribute(Qt.WA_TranslucentBackground)
-        self.width = 300
-        self.height = 400
-        self.resize(self.width, self.height)
+        # self.width = self.width()
+        # self.height = self.height()
+        self.resize(268, 295)
+        # self.setFixedWidth(300)
+
 
 
         self.__listener_thread = GlobalHotKeyThread()
@@ -167,26 +228,44 @@ class RecommendWindow(QWidget):
 
         self.__listener_thread.start()
         QApplication.instance().aboutToQuit.connect(self.__listener_thread.quit)
+        self.btn_cancle = QPushButton("Cancle")
+        self.btn_cancle.setObjectName("CancleBtn")
+        self.btn_cancle.clicked.connect(self.__cancle_response)
+
         self.select_recommend_widget = SelectRecommendWindow()
         self.select_related_widget = SelectRelatedFilesWindow()
-
-        self.select_recommend_widget.set_selected_callback(self.__selected)
-
-        self.layout = QStackedLayout(self)
-        self.layout.addWidget(self.select_recommend_widget)
-        self.layout.addWidget(self.select_related_widget)
         
-        self.layout.setCurrentIndex(0)
-        self.__load_stylesheet(PATH_RESOURCE + PATH_STYLE_SHEET)
+        self.select_recommend_widget.set_selected_callback(self.__selected)
+        
+        
+        self.layout_main = QVBoxLayout(self)
+        self.layout_main.setContentsMargins(0, 11, 0, 0)
+        self.layout_main.setSpacing(0)
 
+        
+        self.form_stack = QWidget()
+        self.form_stack.setObjectName("form")
+        self.layout_stack = QStackedLayout(self.form_stack)
+        # self.form_stack.setStyleSheet("background-color: red;")
+
+
+        self.layout_stack.addWidget(self.select_recommend_widget)
+        self.layout_stack.addWidget(self.select_related_widget)
+        
+        self.layout_stack.setCurrentIndex(0)
+        self.__load_stylesheet(PATH_RESOURCE + PATH_STYLE_SHEET)
+        self.layout_main.addWidget(QLabel("📁 File Manager"))
+        self.layout_main.addWidget(self.form_stack)
+        self.layout_main.addWidget(self.btn_cancle)
 
     def __selected(self):
-        self.layout.setCurrentIndex(1)
+        self.layout_stack.setCurrentIndex(1)
         print(self.select_recommend_widget.get_selected_path())
 
 
     def __recommned(self, filename, dirs):
-        self.select_recommend_widget.set_recommend(filename, dirs)
+        if not self.isVisible():
+            self.select_recommend_widget.set_recommend(filename, dirs)
         QTimer.singleShot(1, self.__display_window)
 
     def __submit(self):
@@ -210,6 +289,7 @@ class RecommendWindow(QWidget):
     
     def __cancle_response(self):
         print("cancle")
+        self.hide()
 
     def __run_operation(self):  
         print("run")
@@ -223,10 +303,11 @@ class RecommendWindow(QWidget):
         screen_geometry = screen.availableGeometry()
         
         self.move(
-            screen_geometry.x() + screen_geometry.width() - self.width,
-            screen_geometry.y() + screen_geometry.height() - self.height
+            screen_geometry.x() + screen_geometry.width() - self.width(),
+            screen_geometry.y() + screen_geometry.height() - self.height()
         )
-    
+        
+
     def __load_stylesheet(self, path):
         qss_file = QFile(path)
         qss_file.open(QFile.ReadOnly | QFile.Text)
