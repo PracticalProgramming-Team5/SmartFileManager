@@ -14,7 +14,8 @@ SETTINGS_PATH = "../settings.json"
 WIN_MIN_WIDTH = 800
 WIN_MIN_HEIGHT = 600
 
-PATH_STYLE_SHEET = "style.qss"
+PATH_RESOURCE = "./resource/"
+PATH_STYLE_SHEET = "main_style.qss"
 
 TAB_LIST = ["Home", "History", "Settings"]
 
@@ -425,7 +426,7 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
-        self.__load_stylesheet(PATH_STYLE_SHEET)
+        self.__load_stylesheet(PATH_RESOURCE + PATH_STYLE_SHEET)
 
     def __load_stylesheet(self, path):
         qss_file = QFile(path)
