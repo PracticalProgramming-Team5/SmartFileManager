@@ -12,8 +12,8 @@ class ActionMove(BaseModel):
 
 class ActionCommand(BaseModel):
     action: str
-    source: str
-    destination: str
+    source: str | Tuple[str, ...]
+    destination: str | Tuple[str, ...]
     result: str
     def __repr__(self):
         return self.model_dump_json()
@@ -65,7 +65,7 @@ EXAMPLE_PAYLOAD_ = ActionCommandList(
         ActionCommand(
             action="mask_filename",
             source="pictures_files",
-            destination="['*.png', '*.jpg', '*.jpeg', '*.webp']",
+            destination=('*.png', '*.jpg', '*.jpeg', '*.webp'),
             result="masked_files"
         ),
         ActionCommand(
