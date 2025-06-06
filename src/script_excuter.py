@@ -7,7 +7,8 @@ class ScriptExecuter:
         for a in available_actions:
             self.actions[a]=available_actions[a][0]
         self.symbols = {}
-        self.rollback_list = []
+        self.rollback_list_script = []
+        self.rollback_list_move = []
 
     def resolve(self, value):
         if isinstance(value, list):
@@ -31,9 +32,9 @@ class ScriptExecuter:
             _, rollback = self.actions[action](source, destination)
 
         if isinstance(rollback, list):
-            self.rollback_list.extend(rollback)
+            self.rollback_list_script.extend(rollback)
         else:
-            self.rollback_list.append(rollback)
+            self.rollback_list_script.append(rollback)
 
     def run_script(self, script):
         try:
@@ -44,8 +45,21 @@ class ScriptExecuter:
             return str(e)
         return None
     
-    def rollback(self):
-        for cmd in reversed(self.rollback_list):
+    def move(self, source, destination):
+        try:
+            _, rollback = FileSystemManager.move(source, destination)
+            self.rollback_list_move.append(rollback)
+        except Exception as e:
+            return str(e)
+        return None
+        
+    def rollback(self, rollback_list):
+        """
+        rollback list를 받아 역순으로 실행시켜 주는 함수
+
+        **주의: rollback list는 중복 실행을 방지하기 위해 해당 함수 실행 후 반드시 clear해야 합니다.**
+        """
+        for cmd in reversed(rollback_list):
             try:
                 action = cmd['action']
                 source = self.resolve(cmd['source'])
