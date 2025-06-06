@@ -1,0 +1,40 @@
+#RecommendWindow {
+    outline: none;
+    background-color:rgb(59, 59, 59);
+    /* background-color:rgb(225, 225, 225); */
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    color:rgb(255, 255, 255);
+    font-size: 24px;
+}
+
+SelectPathWindow {
+    outline: none;
+}
+
+
+
+#BtnSelectRecommend {
+    outline: none;
+    border: none;
+    padding: none;
+    background: transparent;
+    color:rgb(255, 255, 255);
+}
+
+QLabel {
+    color:rgb(255, 255, 255);
+}
+
+QListWidget {
+    background-color:rgb(38, 38, 38);
+    border: none;
+    outline: none;
+}
+
+QListWidget::item:hover {
+    background-color:rgba(0, 94, 255, 0.37)
+}
+QListWidget::item:selected {
+    background-color:rgba(0, 94, 255, 0.78);
+}
