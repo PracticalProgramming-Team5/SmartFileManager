@@ -19,8 +19,7 @@ class GlobalHotKeyThread(QThread):
     hotkey_pressed = pyqtSignal()
     close_pressed = pyqtSignal()
 
-    event_llm_response = pyqtSignal(str, list) # 파일명, 추천 경로 목록
-    event_completed_operation = pyqtSignal(bool, str) # 동작 수행 여부, 설명
+    event_recomend = pyqtSignal(str, list) # 파일명, 추천 경로 목록
     current_keys = set()
     
     
@@ -51,20 +50,21 @@ class GlobalHotKeyThread(QThread):
     def __on_press(self, key):
         self.current_keys.add(key)
         if self.__check_hot_key():
-            self.hotkey_pressed.emit()
+            self.event_recomend.emit("파일명", ['경로1', '경로2', '경로3'])
+            # self.hotkey_pressed.emit()
         elif self.__check_close():
             self.close_pressed.emit()
         elif self.__chcek_recommend():
-            self.event_llm_response.emit("파일명", ['경로1', '경로2', '경로3'])
+            self.event_recomend.emit("파일명", ['경로1', '경로2', '경로3'])
     
     def __on_release(self, key):
         if key in self.current_keys:
             self.current_keys.remove(key)
 
-class SelectFilesWindow(QWidget):
+class SelectRelatedFilesWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setObjectName("SelectFilesWindow")
+        self.setObjectName("SelectRelatedFilesWindow")
 
         
 
@@ -97,13 +97,13 @@ class SelectableItemWidget(QWidget):
             self.setMaximumWidth(parent_width)  # 예시
         super().showEvent(event)
 
-    def text(self):
+    def get_path(self):
         return self.path
 
-class SelectPathWindow(QWidget):
+class SelectRecommendWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setObjectName("SelectPathWindow")
+        self.setObjectName("SelectRecommendWindow")
         self.layout = QVBoxLayout(self)
         self.name_label = QLabel()
         
@@ -111,12 +111,10 @@ class SelectPathWindow(QWidget):
         self.list_widget.setAttribute(Qt.WA_StyledBackground, True)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        
-
-
+        self.selected_callback = lambda: None
+        self.selected_path = None
         self.layout.addWidget(self.name_label)
         self.layout.addWidget(self.list_widget)
-        self.set_recommend("testfile.py", ["/home/user/projects/my-app", "/var/www/html/portfolio", "C:\\Users\\Alice\\Documents\\Work\\Reports"])
 
     def __add_item(self, path):
         item_widget = QListWidgetItem()
@@ -126,18 +124,25 @@ class SelectPathWindow(QWidget):
         self.list_widget.setItemWidget(item_widget, widget)
     
     def __select_item(self, item):
-        print(item.text())
-        # self.list_widget.clear()
+        self.selected_path = item.get_path()
+        self.selected_callback()
 
     def __clear_all(self):
         self.name_label.setText("")
-
+        self.selected_path = None
+        self.list_widget.clear()
+    
+    def set_selected_callback(self, func):
+        self.selected_callback = func
+    
     def set_recommend(self, filename, recommend_dirs):
         self.__clear_all()
         self.name_label.setText(filename + " to ..")
         for path in recommend_dirs:
             self.__add_item(path)
-        
+    
+    def get_selected_path(self):
+        return self.selected_path
         
 
 class RecommendWindow(QWidget):
@@ -155,19 +160,34 @@ class RecommendWindow(QWidget):
         self.__listener_thread = GlobalHotKeyThread()
         self.__listener_thread.hotkey_pressed.connect(self.__display_window)
         self.__listener_thread.close_pressed.connect(self.close)
+        self.__listener_thread.event_recomend.connect(self.__recommned)
 
         # self.__listener_thread.event_completed_operation.connect(self.__on_operation_response)
-        # self.__listener_thread.event_llm_response.connect(self.__on_llm_response)
+        # self.__listener_thread.event_recomend.connect(self.__on_llm_response)
 
         self.__listener_thread.start()
         QApplication.instance().aboutToQuit.connect(self.__listener_thread.quit)
+        self.select_recommend_widget = SelectRecommendWindow()
+        self.select_related_widget = SelectRelatedFilesWindow()
 
+        self.select_recommend_widget.set_selected_callback(self.__selected)
 
         self.layout = QStackedLayout(self)
-        self.layout.addWidget(SelectPathWindow())
+        self.layout.addWidget(self.select_recommend_widget)
+        self.layout.addWidget(self.select_related_widget)
         
+        self.layout.setCurrentIndex(0)
         self.__load_stylesheet(PATH_RESOURCE + PATH_STYLE_SHEET)
 
+
+    def __selected(self):
+        self.layout.setCurrentIndex(1)
+        print(self.select_recommend_widget.get_selected_path())
+
+
+    def __recommned(self, filename, dirs):
+        self.select_recommend_widget.set_recommend(filename, dirs)
+        QTimer.singleShot(1, self.__display_window)
 
     def __submit(self):
         pass
