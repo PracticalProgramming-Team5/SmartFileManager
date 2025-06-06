@@ -216,6 +216,32 @@ class SettingsFormApiKey(QWidget):
     def get_value(self):
         return self.input.text()
 
+class SettingsFormModelName(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+        
+        input_form = QWidget()
+        # input_form_layout = QHBoxLayout(input_form)
+        # input_form_layout.addWidget(QLabel("발급받은 GPT-4o의 API KEY를 입력합니다."))
+        # self.input = QLineEdit()
+        
+        # input_form_layout.addWidget(self.input)
+        self.input = QLineEdit()
+        layout.addWidget(QLabel("Model Name"))
+        layout.addWidget(QLabel("사용할 모델명을 입력합니다."))
+        layout.addWidget(self.input)
+
+        self.__load_value()
+
+    def __load_value(self):
+        model_name = SettingsManager.get('model_name')
+        self.input.setText(model_name)
+
+    def get_value(self):
+        return self.input.text()
+
 class PathItemWidget(QWidget):
     def __init__(self, path, remove_callback):
         super().__init__()
@@ -223,6 +249,7 @@ class PathItemWidget(QWidget):
         label = QLabel(path)
         
         remove_btn = QPushButton("-")
+        remove_btn.setObjectName("BtnRemove")
         remove_btn.setFixedWidth(20)
         layout.addWidget(remove_btn)
         layout.addWidget(label)
@@ -232,6 +259,53 @@ class PathItemWidget(QWidget):
     def text(self):
         return self.layout().itemAt(1).widget().text()
 
+class SettingsFormMonitoringDirectory(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+        
+        self.list_widget = QListWidget()
+        self.list_widget.setMinimumHeight(100)
+        self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        # self.list_widget.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
+        # self.list_widget.setWordWrap(False)
+
+        btn_add = QPushButton("디렉토리 추가")
+        btn_add.clicked.connect(self.__open_path_explorer)
+        
+        layout.addWidget(QLabel("Monitoring directories"))
+        layout.addWidget(QLabel("파일 생성을 감시할 디렉토리를 설정합니다."))
+        layout.addWidget(self.list_widget)
+        layout.addWidget(btn_add)
+        self.__load_value()
+    
+    def __open_path_explorer(self):
+        dir_path = QFileDialog.getExistingDirectory(self, "디렉토리 추가", "")
+        if not dir_path:
+            return
+        self.__add_item(dir_path)
+    
+    def __add_item(self, path):
+        item_widget = QListWidgetItem()
+        widget = PathItemWidget(path, lambda: self.__delete_item(item_widget))
+        item_widget.setSizeHint(widget.sizeHint())
+        self.list_widget.addItem(item_widget)
+        self.list_widget.setItemWidget(item_widget, widget)
+    
+    def __delete_item(self, item):
+        row = self.list_widget.row(item)
+        self.list_widget.takeItem(row)
+    
+    def __load_value(self):
+        list_dir_path = SettingsManager.get('available_dirs')
+        for path in list_dir_path:
+            self.__add_item(path)
+
+    def get_value(self):
+        list_allowed_path = [self.list_widget.itemWidget(self.list_widget.item(i)).text() for i in range(self.list_widget.count())]
+        return list_allowed_path
+
 class SettingsFormAllowedDirectory(QWidget):
     def __init__(self):
         super().__init__()
@@ -239,6 +313,7 @@ class SettingsFormAllowedDirectory(QWidget):
         layout = QVBoxLayout(self)
         
         self.list_widget = QListWidget()
+        self.list_widget.setMinimumHeight(100)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         # self.list_widget.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
         # self.list_widget.setWordWrap(False)
@@ -247,7 +322,7 @@ class SettingsFormAllowedDirectory(QWidget):
         btn_add.clicked.connect(self.__open_path_explorer)
         
         layout.addWidget(QLabel("Allowed directories"))
-        layout.addWidget(QLabel("서비스가 접근 가능한 디렉토리를 설정합니다."))
+        layout.addWidget(QLabel("LLM이 명령을 수행하면서 접근 가능한 디렉토리를 설정합니다."))
         layout.addWidget(self.list_widget)
         layout.addWidget(btn_add)
         self.__load_value()
@@ -281,11 +356,11 @@ class SettingsFormAllowedDirectory(QWidget):
 class ActionItemWidget(QWidget):
     clicked = pyqtSignal()
 
-    def __init__(self, action):
+    def __init__(self, action, state="차단"):
         super().__init__()
         layout = QHBoxLayout(self)
         label = QLabel(action)
-        self.label_state = QLabel("허용")
+        self.label_state = QLabel(state)
         layout.addWidget(label, alignment=Qt.AlignLeft)
         layout.addWidget(self.label_state, alignment=Qt.AlignRight)
         self.clicked.connect(self.change_state)
@@ -305,6 +380,8 @@ class ActionItemWidget(QWidget):
         else:
             self.label_state.setText("허용")
 
+    def get_action_name(self):
+        return self.layout().itemAt(0).widget().text()
     def get_value(self):
         return self.layout().itemAt(1).widget().text()
 
@@ -315,6 +392,7 @@ class SettingsFormAllowedAction(QWidget):
         layout = QVBoxLayout(self)
         
         self.list_widget = QListWidget()
+        self.list_widget.setMinimumHeight(100)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         # self.list_widget.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
         # self.list_widget.setWordWrap(False)
@@ -330,21 +408,34 @@ class SettingsFormAllowedAction(QWidget):
         layout.addWidget(QLabel("차단: 해당 명령이 포함 되는 경우 해당 동작을 차단 합니다."))
         self.__load_value()
     
-    def __add_item(self, action):
+    def __add_item(self, action, state):
         item_widget = QListWidgetItem()
-        widget = ActionItemWidget(action)
+        widget = ActionItemWidget(action, state)
         item_widget.setSizeHint(widget.sizeHint())
         self.list_widget.addItem(item_widget)
         self.list_widget.setItemWidget(item_widget, widget)
     
     def __load_value(self):
-        list_dir_path = SettingsManager.get('available_apis')
-        for action in list_dir_path:
-            self.__add_item(action)
+        list_available_action = SettingsManager.get('available_commands')
+        list_interst_action = SettingsManager.get('interest_commands')
+        list_action = SettingsManager.get('command_list')
 
-    def get_value(self):
-        list_allowed_path = [self.list_widget.itemWidget(self.list_widget.item(i)).text() for i in range(self.list_widget.count())]
-        return list_allowed_path
+        for action in list_action:
+
+            if action in list_available_action:
+                self.__add_item(action, "허용")
+            elif action in list_interst_action:
+                self.__add_item(action, "관심")
+            else:
+                self.__add_item(action, "차단")
+
+    def get_value(self, filter=''):
+        result = []
+        for i in range(self.list_widget.count()):
+            widget = self.list_widget.itemWidget(self.list_widget.item(i))
+            if widget.get_value() == filter:
+                result.append(widget.get_action_name())
+        return result
 
 class ContentSettings(QWidget):
     def __init__(self):
@@ -352,7 +443,7 @@ class ContentSettings(QWidget):
         self.setObjectName("ContentSettings")
         self.setProperty("parent", "MainWindowContent")
 
-        self.settings_manager = SettingsManager(SETTINGS_PATH)
+        self.settings_manager = SettingsManager()
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -365,11 +456,14 @@ class ContentSettings(QWidget):
         self.content_layout = QVBoxLayout(self.content_widget)
         
         self.form_api_key = SettingsFormApiKey()
+        self.form_model_name = SettingsFormModelName()
+        self.form_monitoring_directory = SettingsFormMonitoringDirectory()
         self.form_allowed_directory = SettingsFormAllowedDirectory()
-        self.form_hot_key = QWidget()
         self.form_allowed_method = SettingsFormAllowedAction()
 
         self.content_layout.addWidget(self.form_api_key)
+        self.content_layout.addWidget(self.form_model_name)
+        self.content_layout.addWidget(self.form_monitoring_directory)
         self.content_layout.addWidget(self.form_allowed_directory)
         self.content_layout.addWidget(self.form_allowed_method)
         self.content_layout.addStretch()
@@ -383,9 +477,12 @@ class ContentSettings(QWidget):
 
     def __submit_changes(self):
         SettingsManager.set('api_key', self.form_api_key.get_value())
+        SettingsManager.set('model_name', self.form_model_name.get_value())
+        SettingsManager.set('monitoring_dirs', self.form_monitoring_directory.get_value())
         SettingsManager.set('available_dirs', self.form_allowed_directory.get_value())
-        settings = self.settings_manager.load()
-        self.settings_manager.save(settings)
+        SettingsManager.set('available_commands', self.form_allowed_method.get_value('허용'))
+        SettingsManager.set('interest_commands', self.form_allowed_method.get_value('관심'))
+        
     
 class MainWindowContent(QWidget):
     def __init__(self):
