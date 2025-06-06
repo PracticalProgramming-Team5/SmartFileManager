@@ -66,14 +66,6 @@ class ScriptExecuter:
                 action = cmd['action']
                 source = self.resolve(cmd['source'])
                 destination = self.resolve(cmd['destination'])
-                print(self.rollback_list)
                 self.actions[action](source, destination)
             except Exception as e:
                 return f"failed to rollback: {e}"
-            
-        print("rollback!")
-a = ScriptExecuter()
-
-print(a.run_script([{"action":"rm", "source":["C:/Users/juhyu/OneDrive/바탕 화면/sample_data/temp", "C:/Users/juhyu/OneDrive/바탕 화면/sample_data/1week.pdf"], "destination":"", "result":""}]))
-input()
-print(a.rollback())
