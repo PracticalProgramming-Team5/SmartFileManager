@@ -18,6 +18,11 @@ class DirectoryEventHandler(FileSystemEventHandler):
 
     def _check_valid(self, event: FileSystemEvent, flag=True):
         path = event.src_path if flag else event.dest_path
+
+        parts = os.path.normpath(path).split(os.sep)
+        if any(part.startswith('.') for part in parts):
+            return None
+        
         if isinstance(path, bytes):
             path = path.decode()
         if not isinstance(path, str):
@@ -152,23 +157,23 @@ class DirectoryMonitor:
     def _start_watching_directory(self, directory: str) -> None:
         self.observer.schedule(self.handler, directory, recursive=True)
 
-# class DummyCore():
-#     def handle_new_file(self, file_path: str):
-#         print(f"[핸들러 호출됨] 새로운 파일: {file_path}")
-#     def handle_delete_file(self, file_path: str):
-#         print(f"[핸들러 호출됨] 삭제한 파일: {file_path}")
-#     def handle_move_file(self, file_path1: str, file_path2: str):
-#         print(f"[핸들러 호출됨] 이동한 파일: {file_path1} -> {file_path2}")
+class DummyCore():
+    def handle_new_file(self, file_path: str):
+        print(f"[핸들러 호출됨] 새로운 파일: {file_path}")
+    def handle_delete_file(self, file_path: str):
+        print(f"[핸들러 호출됨] 삭제한 파일: {file_path}")
+    def handle_move_file(self, file_path1: str, file_path2: str):
+        print(f"[핸들러 호출됨] 이동한 파일: {file_path1} -> {file_path2}")
 
-# if __name__ == "__main__":
-#     monitor = DirectoryMonitor(core_controller=DummyCore())
-#     monitor.add_directory("C:/Users/juhyu/OneDrive/바탕 화면/SmartFileManager")  # 감시할 디렉토리 경로
-#     monitor.start()
+if __name__ == "__main__":
+    monitor = DirectoryMonitor(core_controller=DummyCore())
+    monitor.add_directory("C:/Users/juhyu/OneDrive/바탕 화면/SmartFileManager")  # 감시할 디렉토리 경로
+    monitor.start()
 
-#     print("디렉토리 감시 시작됨. 새 파일을 만들어 보세요.")
-#     try:
-#         while True:
-#             time.sleep(1)
-#     except KeyboardInterrupt:
-#         print("\n종료 중...")
-#         monitor.stop()
+    print("디렉토리 감시 시작됨. 새 파일을 만들어 보세요.")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\n종료 중...")
+        monitor.stop()
