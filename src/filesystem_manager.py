@@ -164,11 +164,13 @@ class FileSystemManager:
         if isinstance(source, list):
             for s in source:
                 result, _ = FileSystemManager.mask_filename(s, destination)
-                return list(set(matched_files.extend(result))), None
+                matched_files.extend(result)
+            return list(set(matched_files)), None
         if isinstance(destination, list):
             for d in destination:
                 result, _ = FileSystemManager.mask_filename(source, d)
-                return list(set(matched_files.extend(result))), None
+                matched_files.extend(result)
+            return list(set(matched_files)), None
         
         pattern = re.compile(destination)
         for root, dirs, files in os.walk(source):
@@ -176,7 +178,7 @@ class FileSystemManager:
                 if pattern.search(fname):
                     full_path = os.path.join(root, fname)
                     matched_files.append(full_path)
-                    
+
         return list(set(matched_files)), None
     
     @staticmethod
