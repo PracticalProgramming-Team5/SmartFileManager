@@ -1,9 +1,8 @@
 import re
 import os
 import shutil
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict
 import tempfile
-import uuid
 
 
 class FileSystemManager:
@@ -26,7 +25,7 @@ class FileSystemManager:
     def move(source: str, destination: str):
         """
         사용법: {"action":"move", "source":"이동할 파일의 절대 경로", "destination":"이동할 절대 경로", "result":""}
-        설명: 파일 및 경로를 이동할 때 사용하는 명령어입니다. 파일명 수정 시에도 활용됩니다. 디렉토리 변경 시 디렉토리 하위 파일들 및 디렉토리들의 경로 또한 변경됩니다.
+        설명: 파일 또는 디렉토리의 경로를 이동할 때 사용하는 명령어입니다. 파일명을 변경할 때도 사용할 수 있습니다. 디렉토리를 이동하면 하위의 모든 파일과 디렉토리도 함께 이동됩니다.
         인자: result 인자는 공백으로 두고, action, source 및 destination 인자를 작성하십시오
         """
         if not source:
@@ -65,7 +64,7 @@ class FileSystemManager:
     def rm(source, destination: None = None):
         """
         사용법: {"action":"rm", "source":"삭제할 파일 또는 디렉토리의 절대 경로", "destination":"", "result":""}
-        설명: 파일이나 디렉토리를 삭제할 때 사용하는 명령어입니다. 디렉토리 삭제 시, 하위 파일들도 함께 삭제됩니다. 
+        설명: 파일이나 디렉토리를 삭제할 때 사용하는 명령어입니다. 디렉토리를 삭제하면 하위의 모든 파일과 디렉토리도 함께 삭제됩니다. 
         인자: destination 및 result 인자는 공백으로 두고, action 및 source 인자를 작성하십시오.
         """
         if not source:
@@ -163,12 +162,3 @@ class FileSystemManager:
                 try: shutil.rmtree(full_path)
                 except Exception as e:
                     print(f"삭제 실패: {full_path} -> {e}")
-
-    
-_, rollback = FileSystemManager.rm("C:/Users/juhyu/OneDrive/바탕 화면/sample_data/temp")
-print(rollback)
-input()
-FileSystemManager.move(rollback[0].get('source'), rollback[0].get('destination'))
-
-
-# print(tempfile.mkdtemp(prefix=f"fs_rm_backup"))
