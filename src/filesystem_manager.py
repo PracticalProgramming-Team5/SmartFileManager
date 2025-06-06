@@ -25,13 +25,22 @@ class FileSystemManager:
     def move(source: str, destination: str):
         """
         사용법: {"action":"move", "source":"이동할 파일의 절대 경로", "destination":"이동할 절대 경로", "result":""}
-        설명: 파일 또는 디렉토리의 경로를 이동할 때 사용하는 명령어입니다. 파일명을 변경할 때도 사용할 수 있습니다. 디렉토리를 이동하면 하위의 모든 파일과 디렉토리도 함께 이동됩니다.
+        설명: 파일 또는 디렉토리의 경로를 이동할 때 사용하는 명령어입니다. 파일명을 변경할 때도 사용할 수 있습니다.
+        규칙: 디렉토리를 이동하면 하위의 모든 파일과 디렉토리도 함께 이동됩니다. 복수 파일 이동 시 destination의 경로는 해당 파일이 이동될 상위 디렉토리여야 합니다.
         인자: result 인자는 공백으로 두고, action, source 및 destination 인자를 작성하십시오
         """
         if not source:
             raise ValueError("source가 필요합니다.")
         if not destination:
             raise ValueError("destination가 필요합니다.")
+        if isinstance(source, list):
+            if not os.path.isdir(destination):
+                raise ValueError("복수 파일 복사 시 destination은 디렉토리여야 합니다.")
+            rollback_list = []
+            for s in source:
+                _, rollback = FileSystemManager.move(s, destination)
+                rollback_list.append(rollback)
+            return None, rollback_list
         
         shutil.move(source, destination)
         return None, {'action':'move', 'source':destination, 'destination':source, 'result':''}
@@ -40,7 +49,8 @@ class FileSystemManager:
     def cp(source, destination):
         """
         사용법: {"action":"cp", "source":"복사할 파일의 절대 경로", "destination":"복사할 절대 경로", "result":""}
-        설명: 파일을 복사할 때 사용하는 명령어입니다. 복수 파일 복사 시 destination의 경로는 디렉토리여야 합니다.
+        설명: 파일을 복사할 때 사용하는 명령어입니다. 
+        규칙: 복수 파일 복사 시 destination의 경로는 해당 파일이 복사될 상위 디렉토리여야 합니다.
         인자: result 인자는 공백으로 두고, action, source 및 destination 인자를 작성하십시오
         """
         if not source:
@@ -51,20 +61,25 @@ class FileSystemManager:
         if isinstance(source, list):
             if not os.path.isdir(destination):
                 raise ValueError("복수 파일 복사는 destination이 디렉토리여야 합니다.")
+            rollback_list = []
             for src in source:
-                shutil.copy(src, os.path.join(destination, os.path.basename(src)))
+                dest_path = os.path.join(destination, os.path.basename(src))
+                shutil.copy(src, dest_path)
+                rollback_list.append({'action': 'rm', 'source': dest_path, 'destination': '', 'result': ''})
+            return None, rollback_list
+        
+        if os.path.isdir(source):
+            shutil.copytree(source, destination)
         else:
-            if os.path.isdir(source):
-                shutil.copytree(source, destination)
-            else:
-                shutil.copy2(source, destination)
+            shutil.copy2(source, destination)
         return None, {'action':'rm', 'source':destination, 'destination':'', 'result':''}
 
     @staticmethod
     def rm(source, destination: None = None):
         """
         사용법: {"action":"rm", "source":"삭제할 파일 또는 디렉토리의 절대 경로", "destination":"", "result":""}
-        설명: 파일이나 디렉토리를 삭제할 때 사용하는 명령어입니다. 디렉토리를 삭제하면 하위의 모든 파일과 디렉토리도 함께 삭제됩니다. 
+        설명: 파일이나 디렉토리를 삭제할 때 사용하는 명령어입니다.
+        규칙: 디렉토리를 삭제하면 하위의 모든 파일과 디렉토리도 함께 삭제됩니다. 
         인자: destination 및 result 인자는 공백으로 두고, action 및 source 인자를 작성하십시오.
         """
         if not source:
@@ -73,14 +88,16 @@ class FileSystemManager:
         backup_dir = tempfile.mkdtemp(prefix=FileSystemManager.prefix)
         
         rollback_cmds = []
-        FileSystemManager.move(source, backup_dir)
-        for item in os.listdir(backup_dir):
-            item_full = os.path.join(backup_dir, item)
+        if not isinstance(source, list):
+            source = [source]
+        i = 0
+        for s in source:
+            FileSystemManager.move(s, backup_dir + f"/{(i:=i+1)}")
             rollback_cmds.append({
-                'action':'move',
-                'source':item_full,
-                'destination':source,
-                'result':''
+            'action':'move',
+            'source':backup_dir+f"/{i}",
+            'destination':s,
+            'result':''
             })
         return None, rollback_cmds
 
@@ -89,13 +106,20 @@ class FileSystemManager:
         """
         명령어: {"action":"mkdir", "source":"생성할 디렉토리의 절대 경로", "destination":"", "result":""}
         설명: 디렉토리를 생성할 때 사용하는 명령어입니다.
+        규칙: 디렉토리를 생성할 때, 상위 디렉토리는 기존에 존재하는 디렉토리여야 합니다.
         인자: destination 및 result 인자는 공백으로 두고, action 및 source 인자를 작성하십시오.
         """
         if not source:
             raise ValueError("source가 필요합니다.")
         
-        os.makedirs(source, exist_ok=True)
-        return None, {"action":"rm", "source": source, "destination":"", "result":""}
+        if not isinstance(source, list):
+            source = [source]
+
+        rollback_list = []
+        for s in source:
+            os.makedirs(s, exist_ok=True)
+            rollback_list.append({'action': 'rm', 'source': s, 'destination': '', 'result': ''})
+        return None, rollback_list
 
     @staticmethod
     def ls(source, destination: None = None):
@@ -135,16 +159,27 @@ class FileSystemManager:
         if not destination:
             raise ValueError("destination가 필요합니다.")
         
-        pattern = re.compile(destination)
         matched_files = []
         
+        if isinstance(source, list):
+            for s in source:
+                result, _ = FileSystemManager.mask_filename(s, destination)
+                matched_files.extend(result)
+            return list(set(matched_files)), None
+        if isinstance(destination, list):
+            for d in destination:
+                result, _ = FileSystemManager.mask_filename(source, d)
+                matched_files.extend(result)
+            return list(set(matched_files)), None
+        
+        pattern = re.compile(destination)
         for root, dirs, files in os.walk(source):
             for fname in files:
                 if pattern.search(fname):
                     full_path = os.path.join(root, fname)
                     matched_files.append(full_path)
 
-        return matched_files, None
+        return list(set(matched_files)), None
     
     @staticmethod
     def clean_temp():

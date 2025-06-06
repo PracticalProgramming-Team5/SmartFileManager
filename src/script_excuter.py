@@ -45,8 +45,8 @@ class ScriptExecuter:
             for instruction in script:
                 self.execute_instruction(instruction)
         except Exception as e:
-            self.rollback()
-            return str(e)
+            e = self.rollback()
+            return str(e), e
         return None
     
     def move(self, source, destination):
@@ -57,11 +57,11 @@ class ScriptExecuter:
             return str(e)
         return None
         
-    def rollback(self, rollback_list):
+    def rollback(self):
         """
         rollback list를 받아 역순으로 실행시켜 주는 함수
         """
-        for cmd in reversed(rollback_list):
+        for cmd in reversed(self.rollback_list):
             try:
                 action = cmd['action']
                 source = self.resolve(cmd['source'])
