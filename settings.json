@@ -4,6 +4,9 @@
     "available_dirs": [
         "./"
     ],
+    "monitoring_dirs": [
+        "./"
+    ],
     "available_commands": [
         "move",
         "cp",
@@ -14,5 +17,13 @@
     ],
     "interest_commands": [
         
+    ],
+    "command_list": [
+        "move",
+        "cp",
+        "rm",
+        "ls",
+        "mkdir",
+        "mask_filename"
     ]
 }
