@@ -216,7 +216,7 @@ class ContextBuilder:
         """
         allowed_list = SettingsManager.get("available_commands")
         api_list = FileSystemManager.get_actions()
-        api_guide_lines = ["source 및 destination에는 심볼을 인자로 넘길 수 있으며, [...]와 같이 리스트 형태로 여러 값을 인자로 전달할 수 있습니다."]
+        api_guide_lines = ["source 및 destination에는 심볼을 인자로 넘길 수 있으며, (...)와 같이 리스트 형태로 여러 값을 인자로 전달할 수 있습니다."]
         for api in allowed_list:
             api_guide_lines.append(f"{api_list[api][1]}")
             
