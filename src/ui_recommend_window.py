@@ -1,10 +1,12 @@
-from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QScrollArea, QStackedLayout, QListWidget, QListWidgetItem
-from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer, QFile, QTextStream, QSize
+from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QScrollArea, QStackedLayout, QListWidget, QListWidgetItem, QFileSystemModel, QTreeView, QSizePolicy, QCheckBox
+from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer, QFile, QTextStream, QSize, QSortFilterProxyModel, QModelIndex
 from PyQt5.QtGui import QCursor, QMovie, QPainter, QLinearGradient, QColor, QBrush, QFontMetrics
 import sys
 from pynput import keyboard
 import platform
 from enum import Enum
+import os
+from time import time
 
 COMBO = {keyboard.Key.shift, keyboard.Key.space} # 팝업 이벤트 핫키
 COMBO2 = {keyboard.Key.cmd, keyboard.Key.shift} # 닫기 이벤트 핫키
@@ -117,18 +119,181 @@ class GlobalHotKeyThread(QThread):
         if key in self.current_keys:
             self.current_keys.remove(key)
 
-class SelectRelatedFilesWindow(QWidget):
+#######
+
+class TimeFilterProxyModel(QSortFilterProxyModel):
     def __init__(self):
+        super().__init__()
+        self.target_path = os.path.abspath(".")
+        self.threshold_time = time()
+    
+    def set_target_path(self, path, minutes=10):
+        self.target_path = os.path.abspath(path)
+        self.threshold_time = time() - minutes * 60
+        self.invalidateFilter()
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        model = self.sourceModel()
+        index = model.index(source_row, 0, source_parent)
+
+        if not index.isValid():
+            return False
+
+        file_path = os.path.abspath(model.filePath(index))
+        
+        # 상위 경로는 무시
+        if self.target_path.startswith(file_path):
+            return True
+
+        try:
+            ctime = os.path.getctime(file_path)
+            return ctime >= self.threshold_time
+        except Exception:
+            return False
+        
+class CheckableFileSystemModel(QFileSystemModel):
+    def __init__(self):
+        super().__init__()
+        self.checks = {}
+
+    def flags(self, index):
+        default_flags = super().flags(index)
+        if index.column() == 0:
+            return default_flags | Qt.ItemIsUserCheckable
+        return default_flags
+
+    def data(self, index, role):
+        if role == Qt.CheckStateRole and index.column() == 0:
+            return self.checks.get(self.filePath(index), Qt.Unchecked)
+        return super().data(index, role)
+
+    def setData(self, index, value, role):
+        if role == Qt.CheckStateRole and index.column() == 0:
+            path = self.filePath(index)
+            self.checks[path] = value
+            self.dataChanged.emit(index, index)
+            return True
+        return super().setData(index, value, role)
+
+    def get_checked(self):
+        return [path for path, state in self.checks.items() if state == Qt.Checked]
+
+class SelectRelatedFilesWindow(QWidget):
+    def __init__(self, path='.'):
         super().__init__()
         self.setObjectName("SelectRelatedFilesWindow")
 
+        self.selected_callback = lambda: None
+        layout = QVBoxLayout(self)
+        # layout.addWidget(QLabel("Move following files too?"))
+        layout.setContentsMargins(0, 11, 0, 0)
+
+        self.select_all_checkbox = QCheckBox("Move all files?")
+        self.select_all_checkbox.clicked.connect(self.toggle_all_items)
+        layout.insertWidget(1, self.select_all_checkbox)
+
+        self.model = CheckableFileSystemModel()
+        self.proxy = TimeFilterProxyModel()
+        self.tree = QTreeView()
+        self.tree.setHeaderHidden(True)
+        self.tree.setItemsExpandable(False)
+        self.tree.setRootIsDecorated(False)
+        self.tree.clicked.connect(self.on_item_clicked)
+
+
+        btn = QPushButton("확인")
+        btn.setObjectName("BtnRelatedFiles")
+        btn.clicked.connect(self.__select_paths)
         
+        layout.addWidget(self.tree)
+        layout.addWidget(btn)
+        self.__clear_all()
+
+        
+
+    def check_item_is(self):
+        root_index = self.tree.rootIndex()
+        row_count = self.proxy.rowCount(root_index)
+        print(row_count)
+        if row_count:
+            return
+        self.__select_paths()
+
+
+
+    def on_item_clicked(self, proxy_index):
+        source_index = self.proxy.mapToSource(proxy_index)
+        if source_index.column() == 0:
+            current_state = self.model.data(source_index, Qt.CheckStateRole)
+            new_state = Qt.Unchecked if current_state == Qt.Checked else Qt.Checked
+            self.model.setData(source_index, new_state, Qt.CheckStateRole)
+
+            if not new_state:
+                self.select_all_checkbox.setCheckState(Qt.Unchecked)
+            elif self.__check_all():
+                self.select_all_checkbox.setCheckState(Qt.Checked)
+    
+    def __check_all(self):
+        root_index = self.tree.rootIndex()
+        row_count = self.proxy.rowCount(root_index)
+
+        for row in range(row_count):
+            proxy_index = self.proxy.index(row, 0, root_index)
+            source_index = self.proxy.mapToSource(proxy_index)
+            if not self.model.data(source_index, Qt.CheckStateRole):
+                return False
+            
+        return True
+
+    def get_selected_path(self):
+        return self.model.get_checked()
+
+    def __select_paths(self):
+        self.selected_callback()
+
+    def toggle_all_items(self):
+        check_state = self.select_all_checkbox.checkState()
+        root_index = self.tree.rootIndex()
+        row_count = self.proxy.rowCount(root_index)
+
+        for row in range(row_count):
+            proxy_index = self.proxy.index(row, 0, root_index)
+            source_index = self.proxy.mapToSource(proxy_index)
+            if source_index.isValid() and source_index.column() == 0:
+                self.model.setData(source_index, check_state, Qt.CheckStateRole)
+    
+    def set_selected_callback(self, func):
+        self.selected_callback = func
+    
+    def __clear_all(self):
+        self.__set_path('.', minutes=0)
+
+    def set_path(self, path, minutes=10):
+        self.__clear_all()
+        self.__set_path(path, minutes)
+
+    def __set_path(self, path, minutes=10):
+        self.model.setRootPath(path)
+        self.proxy.set_target_path(path, minutes)
+        self.proxy.setSourceModel(self.model)
+
+        
+        # self.tree.setAttribute(Qt.WA_StyledBackground, True)
+        # self.tree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        self.tree.setModel(self.proxy)
+        self.tree.setRootIndex(self.proxy.mapFromSource(self.model.index(path)))
+        
+        for col in range(1, self.model.columnCount()):
+            self.tree.hideColumn(col)
+#######
+
 
 class SelectableItemWidget(QWidget):
     def __init__(self, path, select_callback):
         super().__init__()
         self.setObjectName("SelectableItemWidget")
-        self.layout = QHBoxLayout(self)
+        self.layout = QHBoxLayout(self) 
         self.label = ScrollingLabel(path)
         self.path = path
 
@@ -210,11 +375,7 @@ class RecommendWindow(QWidget):
         self.setObjectName("RecommendWindow")
         self.isWinsOs = (platform.system() == "Windows")
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        # self.setAttribute(Qt.WA_TranslucentBackground)
-        # self.width = self.width()
-        # self.height = self.height()
         self.resize(268, 295)
-        # self.setFixedWidth(300)
 
 
 
@@ -223,9 +384,6 @@ class RecommendWindow(QWidget):
         self.__listener_thread.close_pressed.connect(self.close)
         self.__listener_thread.event_recomend.connect(self.__recommned)
 
-        # self.__listener_thread.event_completed_operation.connect(self.__on_operation_response)
-        # self.__listener_thread.event_recomend.connect(self.__on_llm_response)
-
         self.__listener_thread.start()
         QApplication.instance().aboutToQuit.connect(self.__listener_thread.quit)
         self.btn_cancle = QPushButton("Cancle")
@@ -233,9 +391,10 @@ class RecommendWindow(QWidget):
         self.btn_cancle.clicked.connect(self.__cancle_response)
 
         self.select_recommend_widget = SelectRecommendWindow()
-        self.select_related_widget = SelectRelatedFilesWindow()
+        self.select_related_widget = SelectRelatedFilesWindow('.')
         
-        self.select_recommend_widget.set_selected_callback(self.__selected)
+        self.select_recommend_widget.set_selected_callback(self.__recommend_selected)
+        self.select_related_widget.set_selected_callback(self.__related_selected)
         
         
         self.layout_main = QVBoxLayout(self)
@@ -258,14 +417,25 @@ class RecommendWindow(QWidget):
         self.layout_main.addWidget(self.form_stack)
         self.layout_main.addWidget(self.btn_cancle)
 
-    def __selected(self):
+        self.select_related_widget.set_path('.', minutes=1000)
+        
+    def __related_selected(self):
+        print("도착지:", self.select_recommend_widget.get_selected_path())
+        print("함께 옮길 파일들:", self.select_related_widget.get_selected_path())
         self.layout_stack.setCurrentIndex(1)
-        print(self.select_recommend_widget.get_selected_path())
+        self.__cancle_response()
+
+        # 여기에서 함수 호출  
+
+    def __recommend_selected(self):
+        self.layout_stack.setCurrentIndex(1)
+        self.select_related_widget.check_item_is()
 
 
     def __recommned(self, filename, dirs):
         if not self.isVisible():
             self.select_recommend_widget.set_recommend(filename, dirs)
+            self.layout_stack.setCurrentIndex(0)
         QTimer.singleShot(1, self.__display_window)
 
     def __submit(self):
@@ -290,6 +460,8 @@ class RecommendWindow(QWidget):
     def __cancle_response(self):
         print("cancle")
         self.hide()
+        # set_path
+        self.select_related_widget.set_path('.', minutes=0)
 
     def __run_operation(self):  
         print("run")
