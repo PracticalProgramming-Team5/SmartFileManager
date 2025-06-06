@@ -1,14 +1,18 @@
 from filesystem_manager import FileSystemManager
 
 class ScriptExecuter:
+    """
+    스크립트를 실행시키고 롤백을 관리하는 클래스
+
+    **주의: 한 작업 명령당 하나의 객체를 생성하여 관리해야 합니다.**
+    """
     def __init__(self):
         available_actions = FileSystemManager.get_actions()
         self.actions = dict()
         for a in available_actions:
             self.actions[a]=available_actions[a][0]
         self.symbols = {}
-        self.rollback_list_script = []
-        self.rollback_list_move = []
+        self.rollback_list = []
 
     def resolve(self, value):
         if isinstance(value, list):
@@ -32,9 +36,9 @@ class ScriptExecuter:
             _, rollback = self.actions[action](source, destination)
 
         if isinstance(rollback, list):
-            self.rollback_list_script.extend(rollback)
+            self.rollback_list.extend(rollback)
         else:
-            self.rollback_list_script.append(rollback)
+            self.rollback_list.append(rollback)
 
     def run_script(self, script):
         try:
@@ -48,7 +52,7 @@ class ScriptExecuter:
     def move(self, source, destination):
         try:
             _, rollback = FileSystemManager.move(source, destination)
-            self.rollback_list_move.append(rollback)
+            self.rollback_list.append(rollback)
         except Exception as e:
             return str(e)
         return None
@@ -56,8 +60,6 @@ class ScriptExecuter:
     def rollback(self, rollback_list):
         """
         rollback list를 받아 역순으로 실행시켜 주는 함수
-
-        **주의: rollback list는 중복 실행을 방지하기 위해 해당 함수 실행 후 반드시 clear해야 합니다.**
         """
         for cmd in reversed(rollback_list):
             try:
