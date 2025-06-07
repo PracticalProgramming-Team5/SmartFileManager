@@ -11,6 +11,7 @@ class EventHub(QObject):
     event = pyqtSignal(AppEvent)
 
 class Worker(QObject):
+    finished = pyqtSignal()
     def __init__(self, callback=None, event_hub=None, name=None):
         super().__init__()
         self.callback = callback
@@ -19,10 +20,15 @@ class Worker(QObject):
 
     @pyqtSlot()
     def run(self):
-        result = None
-        if not self.callback:
-            return
-        
-        result = self.callback()
-        self.event_hub.event.emit(AppEvent(self.name, result))
-        self.deleteLater()
+        try:
+            result = None
+            if not self.callback:
+                return
+            
+            result = self.callback()
+
+            self.event_hub.event.emit(AppEvent(self.name, result))
+        except Exception as e:
+            print("error:", e)
+        finally:
+            self.finished.emit()
