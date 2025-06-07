@@ -1,4 +1,3 @@
-import logging
 from typing import Dict, List, Optional, Tuple
 from settings_manager import SettingsManager
 from enum import IntFlag, auto
@@ -30,16 +29,6 @@ CODE_MAP = {
     openai.APITimeoutError: LLMErrorCode.TIMEOUT
 }
 
-# logger 정의
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-_logger = logging.getLogger("llm_client")
-if not _logger.handlers:
-    handler = logging.FileHandler("llm_client.log")
-    handler.setFormatter(formatter)
-    _logger.addHandler(handler)
-    _logger.setLevel(logging.INFO)
-    _logger.propagate = False
-
 def _make_message(system_msg: str, prompt: str) -> List[Dict[str, str]]:
     """
     message 생성
@@ -54,7 +43,8 @@ class LLMClient:
     LLM API와의 통신을 처리하는 클래스
 
     Raise:
-        ValueError: model_name or api_key == None
+        ValueError: api 및 model 업데이트 실패 시
+
     """
     def __init__(self):
         self.update_settings()
@@ -82,16 +72,12 @@ class LLMClient:
                 timeout=30
             )
             return response.choices[0].message.content, ecode
-        except tuple(CODE_MAP.keys()) as e:
-            _logger.error(f"{type(e).__name__}: {e}")
+        except tuple(CODE_MAP.keys()) as e: # 특정한 에러 코드들
             ecode |= CODE_MAP[type(e)]
         except openai.APIError as e: # 기타 API 관련 에러들
-            _logger.error(f"API error: {e}")
             ecode |= LLMErrorCode.API_ERR
         except Exception as e: # 이외 알 수 없는 오류
-            _logger.error(f"Unknown error: {e}")
             ecode |= LLMErrorCode.UNKNOWN
-        _logger.error(f"ecode: {ecode}")
         return None, ecode
     
     def update_settings(self, update_api_key : bool=True, update_model_name : bool=True) -> None:
@@ -108,20 +94,10 @@ class LLMClient:
         if update_api_key:
             api_key = SettingsManager.get('api_key')
             if not api_key:
-                _logger.error("Failed to update API key")
                 raise ValueError("no API key")
             self.client = OpenAI(api_key=api_key)
         if update_model_name:
             model_name = SettingsManager.get('model_name')
             if not model_name:
-                _logger.error("Failed to update model name")
                 raise ValueError("no model name")
             self.model_name = model_name
-
-"""
-# 예제 코드
-if __name__ == "__main__":
-    client = LLMClient()
-    res, _ = client.query("계산기", "1+1=?")
-    print(res)
-"""

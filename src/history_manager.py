@@ -1,19 +1,29 @@
 class HistoryManager:
-    def __init__(self, max_history: int = 20):
-        self.history = []
-        self.max_history = max_history
+    _history = []
+    __max_history = 20
 
-    def log_action(self, action_details: dict):
-        if len(self.history) >= self.max_history:
-            self.history.pop(0)  # 가장 오래된 항목 제거
-        self.history.append(action_details)
+    @classmethod
+    def log(cls, action_details: dict) -> None:
+        if len(cls._history) >= cls.__max_history:
+            cls._history.pop(0)  # 가장 오래된 항목 제거
+        cls._history.append(action_details)
 
-    def get_last_action(self) -> dict | None:
-        if self.history:
-            return self.history[-1]
+    @classmethod
+    def peek(cls) -> list | None:
+        if cls._history:
+            return cls._history[-1]
         return None
 
-    def pop_last_action(self) -> dict | None:
-        if self.history:
-            return self.history.pop()
-        return None
+    @classmethod
+    def delete(cls, index) -> None:
+        if index >= 0 and cls._history and len(cls._history) > index:
+            cls._history.pop(index)
+
+    @classmethod
+    def clear(cls) -> None:
+        if cls._history:
+            cls._history = []
+
+    @classmethod
+    def get(cls) -> list:
+        return cls._history

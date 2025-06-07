@@ -1,6 +1,29 @@
 {
-  "api_key": "개인 open-Ai api-key 입력",
-  "model_name": "gpt-4",
-  "available_dirs": ["./"],
-  "available_apis": ["move", "rename", "delete", "create_directory"]
+    "api_key": "개인 open-Ai api-key 입력",
+    "model_name": "gpt-4o",
+    "available_dirs": [
+        "./"
+    ],
+    "monitoring_dirs": [
+        "./"
+    ],
+    "available_commands": [
+        "move",
+        "cp",
+        "rm",
+        "ls",
+        "mkdir",
+        "mask_filename"
+    ],
+    "interest_commands": [
+        
+    ],
+    "command_list": [
+        "move",
+        "cp",
+        "rm",
+        "ls",
+        "mkdir",
+        "mask_filename"
+    ]
 }
