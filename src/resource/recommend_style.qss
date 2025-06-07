@@ -1,0 +1,164 @@
+#RecommendWindow {
+    outline: none;
+    background-color:rgb(59, 59, 59);
+    /* background-color:rgb(225, 225, 225); */
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    color:rgb(255, 255, 255);
+    font-size: 24px;
+}
+
+#SelectRecommendWindow {
+    outline: none;
+}
+#SelectRelatedFilesWindow {
+    outline: none;
+}
+
+QFileSystemModel {
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+}
+
+QTreeView {
+    outline: none;
+    background-color:rgb(38, 38, 38);
+    color:rgb(255, 255, 255);
+}
+QTreeView::item:hover {
+    outline: none;
+    background-color:rgba(0, 94, 255, 0.37)
+}
+QTreeView::item:selected {
+    outline: none;
+    background-color:rgba(0, 94, 255, 0.78);
+}
+#BtnSelectRecommend {
+    outline: none;
+    border: none;
+    padding: none;
+    background: transparent;
+    color:rgb(255, 255, 255);
+}
+
+QLabel {
+    color:rgb(255, 255, 255);
+}
+
+QListWidget {
+    background-color:rgb(38, 38, 38);
+    border: none;
+    outline: none;
+}
+
+QListWidget::item:hover {
+    background-color:rgba(0, 94, 255, 0.37)
+}
+QListWidget::item:selected {
+    background-color:rgba(0, 94, 255, 0.78);
+}
+QWidget#form {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+#CancleBtn {
+
+    margin-top: 5px;
+    margin-left: 5.5px;
+    margin-right: 5.5px;
+    margin-bottom: 5px;
+    padding: 6px;
+    background-color:rgba(255, 50, 50, 0.45);
+    color:rgb(221, 221, 221);
+}
+
+#CancleBtn:focus, #CancleBtn:hover{
+    border: 2px solidrgb(154, 210, 255);
+    background-color:rgba(255, 50, 50, 0.7);
+    outline: none;
+}
+
+
+#CancleBtn:disabled {
+    border: 2px solid #ccc;
+    color:rgb(176, 176, 176);
+}
+
+#BtnRelatedFiles {
+    margin-top: 5px;
+    margin-left: 5.5px;
+    margin-right: 5.5px;
+    margin-bottom: 5px;
+    padding: 6px;
+    background-color:rgba(50, 255, 57, 0.45);
+    color:rgb(221, 221, 221);
+}
+
+#BtnRelatedFiles:focus, #BtnRelatedFiles:hover{
+    border: 2px solidrgb(154, 210, 255);
+    background-color:rgba(50, 255, 57, 0.7);
+    outline: none;
+}
+
+
+#BtnRelatedFiles:disabled {
+    border: 2px solid #ccc;
+    color:rgb(176, 176, 176);
+}
+
+/******************** 스크롤바 OS 의존적이지 않도록 ********************/
+QScrollBar:vertical, QScrollBar:horizontal {
+    background: transparent;
+    border: none;
+    margin: 0px;
+}
+
+/* 수직 스크롤바 */
+QScrollBar:vertical {
+    width: 8px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #555;
+    min-height: 30px;
+    border-radius: 1px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #111;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+    border: none;
+    background: none;
+}
+
+/* 수평 스크롤바 */
+QScrollBar:horizontal {
+    height: 8px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #888;
+    min-width: 30px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #555;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0px;
+    border: none;
+    background: none;
+}
+
+/* 빈 공간 스타일 제거 */
+QScrollBar::add-page, QScrollBar::sub-page {
+    background: none;
+}
