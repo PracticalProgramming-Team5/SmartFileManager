@@ -1,0 +1,26 @@
+{
+  "api_key": "개인 open-Ai api-key 입력",
+  "model_name": "gpt-4o",
+  "available_dirs": [
+    "./"
+  ],
+  "monitoring_dirs": [
+    "./"
+  ],
+  "available_commands": [
+    "move",
+    "mkdir"
+  ],
+  "interest_commands": [
+    "cp",
+    "rm"
+  ],
+  "command_list": [
+    "move",
+    "cp",
+    "rm",
+    "ls",
+    "mkdir",
+    "mask_filename"
+  ]
+}

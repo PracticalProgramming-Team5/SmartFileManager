@@ -181,5 +181,5 @@ cython_debug/
 *.iml
 .idea/
 
-# mac
+# Mac
 .DS_Store
