@@ -37,6 +37,25 @@ class AppEvent:
     data: object
 """
 
+class WrapDirectoryMonitor(QObject):
+    def __init__(self, event_hub):
+        super.__init__()
+        self.event_hub = event_hub
+        def parse_monitor(src, dst, code):
+            name, data = "", {}
+            if code == 0:
+                name, data = "CoreFileAdd", {"src":src}
+            elif code == 1:
+                name, data = "CoreFiledel", {"src":src}
+            else:
+                name, data = "CoreFileMov", {"src":src, "dst":dst}
+            self.event_hub.event.emit(AppEvent(name, data))
+        self.dir_monitor = DirectoryMonitor(parse_monitor)
+    def start(self):
+        self.dir_monitor.start()
+    def stop(self):
+        self.dir_monitor.stop()
+
 
 class FileManagerCore(QObject):
     def __init__(self, event_hub):
@@ -53,12 +72,16 @@ class FileManagerCore(QObject):
         # self.script_exe = ScriptExecuter()
         self.tag_db = FileTagDB()
         # self.res_parse = ResponseParser()
-        # self.dir_monitor = DirectoryMonitor()
+        
+        self.dir_monitor = WrapDirectoryMonitor()
+
     def __process_event(self, event: EventHub):
         if event.name == "CoreRun": # 백그라운드 동작
             self.runnable = True
+            self.dir_monitor.start()
         elif event.name == "CoreStop": # 백그라운드 정지
             self.runnable = False
+            self.dir_monitor.stop()
             self.__clear()
         
         if not self.runnable:
@@ -109,7 +132,11 @@ class FileManagerCore(QObject):
             worker.moveToThread(thread)
             worker.destroyed.connect(thread.deleteLater)
         elif event.name == "CoreResMov": # 명령 결과
-            print("이따 구현")
+            e = event.data
+            if e:
+                print("실패", e)
+                return
+            print("성공")
         ####
         if event.name == "CoreFileAdd": # 파일 생성
             system_msg, prompt = self.context_builder.format_move_prompt(event.data)
