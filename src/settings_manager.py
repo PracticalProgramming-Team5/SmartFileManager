@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Any, Optional, List
+from  filesystem_manager import FileSystemManager
 
 class SettingsManager:
     """
@@ -26,6 +27,7 @@ class SettingsManager:
             "api_key": "",
             "model_name": "",
             "available_dirs": [],
+            "monitoring_dirs": [],
             "available_commands": [],
             "interest_commands": []
         }
@@ -37,6 +39,9 @@ class SettingsManager:
 
     @classmethod
     def get(cls, key: str) -> Optional[Any]:
+        if key == "command_list":
+            return FileSystemManager.get_actions().keys()
+        
         settings = cls._load()
         return settings.get(key)
 
