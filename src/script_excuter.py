@@ -46,7 +46,7 @@ class ScriptExecuter:
                 self.execute_instruction(instruction)
         except Exception as e:
             e = self.rollback()
-            return str(e), e
+            return str(e)
         return None
     
     def move(self, source, destination):
