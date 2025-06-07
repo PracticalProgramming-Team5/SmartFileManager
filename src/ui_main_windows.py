@@ -6,10 +6,11 @@ from PyQt5.QtWidgets import (
     QScrollArea, QLineEdit, QFileDialog, QListWidget,
     QListWidgetItem)
 from PyQt5.QtCore import QFile, QTextStream, Qt, pyqtSignal
+from PyQt5.QtGui import QFont
 
 from settings_manager import SettingsManager
 
-SETTINGS_PATH = "../settings.json"
+SETTINGS_PATH = "./settings.json"
 
 WIN_MIN_WIDTH = 800
 WIN_MIN_HEIGHT = 600
@@ -73,8 +74,14 @@ class ContentHome(QWidget):
         self.setProperty("parent", "MainWindowContent")
 
         self.layout = QVBoxLayout()
-        self.layout.addWidget(QLabel("Home"))
-        self.layout.addWidget(QPushButton("Run"))
+        label = QLabel("Home")
+        label.setObjectName("h1")
+        self.layout.addWidget(label)
+
+        btn = QPushButton("Run")
+        btn.setObjectName("BtnNormal")
+        self.layout.addWidget(btn)
+
         
         self.layout.addStretch()
         self.setLayout(self.layout)
@@ -101,9 +108,14 @@ class ContentHistory(QWidget):
         self.content_layout = QVBoxLayout(self.content_widget)
         
         self.btn_refresh = QPushButton("Refresh")
+        self.btn_refresh.setObjectName("BtnNormal")
         self.btn_refresh.clicked.connect(self.__update_history)
         
         self.main_layout = QVBoxLayout(self)
+        label = QLabel("History")
+        label.setObjectName("h1")
+
+        self.main_layout.addWidget(label)
         self.main_layout.addWidget(self.scroll_area)
         self.main_layout.addWidget(self.btn_refresh)
         
@@ -203,8 +215,12 @@ class SettingsFormApiKey(QWidget):
         
         # input_form_layout.addWidget(self.input)
         self.input = QLineEdit()
-        layout.addWidget(QLabel("API KEY"))
-        layout.addWidget(QLabel("발급받은 GPT-4o의 API KEY를 입력합니다."))
+        self.input.setPlaceholderText("API KEY 입력")
+        label = QLabel("API KEY")
+        label.setObjectName("h2")
+        layout.addWidget(label)
+        FONT_SIZE_LARGE
+        layout.addWidget(QLabel("발급받은 모델의 API KEY를 입력합니다."))
         layout.addWidget(self.input)
 
         self.__load_value()
@@ -229,7 +245,11 @@ class SettingsFormModelName(QWidget):
         
         # input_form_layout.addWidget(self.input)
         self.input = QLineEdit()
-        layout.addWidget(QLabel("Model Name"))
+        self.input.setPlaceholderText("모델명 입력")
+
+        label = QLabel("Model Name")
+        label.setObjectName("h2")
+        layout.addWidget(label)
         layout.addWidget(QLabel("사용할 모델명을 입력합니다."))
         layout.addWidget(self.input)
 
@@ -250,7 +270,8 @@ class PathItemWidget(QWidget):
         
         remove_btn = QPushButton("-")
         remove_btn.setObjectName("BtnRemove")
-        remove_btn.setFixedWidth(20)
+        remove_btn.setFixedWidth(26)
+        remove_btn.setFixedHeight(26)
         layout.addWidget(remove_btn)
         layout.addWidget(label)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -266,15 +287,19 @@ class SettingsFormMonitoringDirectory(QWidget):
         layout = QVBoxLayout(self)
         
         self.list_widget = QListWidget()
+        self.list_widget.setObjectName("ListForm")
         self.list_widget.setMinimumHeight(100)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         # self.list_widget.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
         # self.list_widget.setWordWrap(False)
 
         btn_add = QPushButton("디렉토리 추가")
+        btn_add.setObjectName("BtnNormal")
         btn_add.clicked.connect(self.__open_path_explorer)
-        
-        layout.addWidget(QLabel("Monitoring directories"))
+        label = QLabel("Monitoring directories")
+        label.setObjectName("h2")
+
+        layout.addWidget(label)
         layout.addWidget(QLabel("파일 생성을 감시할 디렉토리를 설정합니다."))
         layout.addWidget(self.list_widget)
         layout.addWidget(btn_add)
@@ -313,15 +338,20 @@ class SettingsFormAllowedDirectory(QWidget):
         layout = QVBoxLayout(self)
         
         self.list_widget = QListWidget()
+        self.list_widget.setObjectName("ListForm")
         self.list_widget.setMinimumHeight(100)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         # self.list_widget.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
         # self.list_widget.setWordWrap(False)
 
         btn_add = QPushButton("디렉토리 추가")
+        btn_add.setObjectName("BtnNormal")
         btn_add.clicked.connect(self.__open_path_explorer)
         
-        layout.addWidget(QLabel("Allowed directories"))
+        label = QLabel("Allowed directories")
+        label.setObjectName("h2")
+
+        layout.addWidget(label)
         layout.addWidget(QLabel("LLM이 명령을 수행하면서 접근 가능한 디렉토리를 설정합니다."))
         layout.addWidget(self.list_widget)
         layout.addWidget(btn_add)
@@ -392,6 +422,7 @@ class SettingsFormAllowedAction(QWidget):
         layout = QVBoxLayout(self)
         
         self.list_widget = QListWidget()
+        self.list_widget.setObjectName("ListForm")
         self.list_widget.setMinimumHeight(100)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         # self.list_widget.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
@@ -399,8 +430,9 @@ class SettingsFormAllowedAction(QWidget):
 
         # btn_add = QPushButton("디렉토리 추가")
         # btn_add.clicked.connect(self.__open_path_explorer)
-        
-        layout.addWidget(QLabel("Allowed actions"))
+        label = QLabel("Allowed directories")
+        label.setObjectName("h2")
+        layout.addWidget(label)
         layout.addWidget(QLabel("LLM이 수행 가능한 동작을 관리합니다. (클릭으로 수정하기)"))
         layout.addWidget(self.list_widget)
         layout.addWidget(QLabel("허용: 해당 명령을 허용합니다."))
@@ -469,9 +501,14 @@ class ContentSettings(QWidget):
         self.content_layout.addStretch()
 
         self.btn_save = QPushButton("Save changes")
+        self.btn_save.setObjectName("BtnNormal")
         self.btn_save.clicked.connect(self.__submit_changes)
         
         self.main_layout = QVBoxLayout(self)
+        label = QLabel("Settings")
+        label.setObjectName("h1")
+
+        self.main_layout.addWidget(label)
         self.main_layout.addWidget(self.scroll_area)
         self.main_layout.addWidget(self.btn_save)
 
@@ -515,6 +552,7 @@ class MainWindow(QMainWindow):
         self.window_content = MainWindowContent()
         self.window_sidebar = MainWindowSideBar()
         self.window_sidebar.set_clicked_action(self.__update_tab) 
+        layout.setContentsMargins(0, 0, 0, 0)
 
         layout.addWidget(self.window_sidebar, stretch=1)
         layout.addWidget(self.window_content, stretch=3)

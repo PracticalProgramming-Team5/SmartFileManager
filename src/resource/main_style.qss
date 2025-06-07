@@ -1,29 +1,34 @@
 SideBarElement {
     background-color: transparent;
     border: none;
-    color: #333;
     font-size: 16px;
     padding: 8px 12px;
     text-align: left;
+    color: rgb(190, 190, 190);
+    font-weight: bold;
 }
 
 SideBarElement:hover {
-    background-color: #e0e0e0;
+    background-color:rgba(185, 185, 185, 0.78);
     /* background-color:rgb(159, 178, 255); */
 }
 
 SideBarElement:pressed {
     /* background-color: #cccccc; */
-    background-color:rgb(80, 118, 255);
+    background-color:rgb(185, 185, 185);
+    color: rgb(0, 0, 0);
 }
 
 SideBarElement:checked {
-    background-color:rgb(80, 118, 255);
+    background-color:rgb(185, 185, 185);
+    color: rgb(0, 0, 0);
 }
 
 MainWindowSideBar {
-    /* background-color:rgb(255, 106, 106); */
+    background-color:rgb(211, 211, 211);
     color: rgb(0, 0, 0);
+    border: 0px;
+    margin: 0px;
 
 }
 
@@ -48,21 +53,146 @@ QLabel {
     color: rgb(0, 0, 0);
 }
 
-QWidget[parent="ContentHistory"] {
-    background-color: #FeFeFe;
-    color: rgb(0, 0, 0);
+QWidget[parent="ContentHistory"], QWidget[parent="ContentSettings"]{
+    background-color:rgba(0, 0, 0, 0);
 }
 
-QWidget[parent="ContentSettings"] {
-    background-color: #FeFeFe;
-    color: rgb(0, 0, 0);
-}
-QListWidget{
-    background-color: #FeFeFe;
-    color: rgb(0, 0, 0);
+
+QListWidget::item:hover {
+    background-color:rgb(28, 28, 28);
 }
 
 QListWidget::item:selected {
     background-color:rgb(80, 118, 255);
-    color: black;
+}
+
+QMainWindow {
+    background-color:rgb(244, 244, 244);
+
+}
+
+#BtnNormal {
+    border-radius: 6px;
+    padding: 6px;
+    background-color:rgb(246, 250, 255);
+    border: 2px solid rgb(85, 85, 85);
+    color: #000000;
+}
+
+#BtnNormal:focus, #BtnNormal:hover{
+    border: 2px solid #0078D7;
+    background-color: #e6f2ff;
+    outline: none;
+}
+
+
+#BtnNormal:disabled {
+    border: 2px solid #ccc;
+    color:rgb(176, 176, 176);
+}
+
+#BtnRemove {
+    border-radius: 10px;
+    color: #000000;
+}
+
+#BtnRemove:focus, #BtnRemove:hover{
+    background-color:rgb(255, 132, 138);
+    outline: none;
+}
+
+
+#BtnRemove:disabled {
+    border: 2px solid #ccc;
+    color:rgb(176, 176, 176);
+}
+
+#ListForm {
+    background-color:rgb(255, 255, 255);
+    border: 2px solid #111;
+    outline: none;
+}
+
+#ListForm::item{
+    background-color:rgb(240, 240, 240);
+    border-bottom: 1px solid #777;
+}
+
+#ListForm::item:hover{
+    background-color:rgb(154, 154, 154);
+}
+
+QLineEdit {
+    background-color:rgb(255, 255, 255);
+    color: #000000;
+    border: 2px solid #111;
+}
+QScrollArea {
+    background-color:rgba(255, 255, 255, 0);
+    color: #000000;
+    outline: none;
+    border: 0px;
+    margin: 0px;
+}
+
+#h1 {
+    font-size: 24pt;
+    font-weight: bold;
+}
+
+#h2 {
+    font-weight: bold;
+    font-size: 18pt;
+}
+QScrollBar:vertical, QScrollBar:horizontal {
+    background: transparent;
+    border: none;
+    margin: 0px;
+}
+
+/* 수직 스크롤바 */
+QScrollBar:vertical {
+    width: 8px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #555;
+    min-height: 30px;
+    border-radius: 1px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #111;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+    border: none;
+    background: none;
+}
+
+/* 수평 스크롤바 */
+QScrollBar:horizontal {
+    height: 8px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #888;
+    min-width: 30px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #555;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0px;
+    border: none;
+    background: none;
+}
+
+/* 빈 공간 스타일 제거 */
+QScrollBar::add-page, QScrollBar::sub-page {
+    background: none;
 }
