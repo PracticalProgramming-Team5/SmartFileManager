@@ -123,7 +123,7 @@ class ContextBuilder:
                 pass
         return file_context, details, thumbnail
 
-    def _get_directory_structure(self, include_tags: bool = True, max_depth: int = 5,
+    def _get_directory_structure(self, include_tags: bool = True, max_depth: int = 1,
                                  ex_patterns: list[str] = None) -> str:
         """
         디렉토리 구조의 표현을 생성합니다.
@@ -167,7 +167,7 @@ class ContextBuilder:
 
         return "\n".join(lines)
 
-    def format_move_prompt(self, file_path: str, max_depth: int = 5, max_size: int = 1024 * 1024) -> Tuple[str]:
+    def format_move_prompt(self, file_path: str, max_depth: int = 1, max_size: int = 1024 * 1024) -> Tuple[str]:
         """
         파일의 목적지를 제안하기 위한 LLM 프롬프트를 생성합니다.
 
@@ -204,7 +204,7 @@ class ContextBuilder:
         )
         return self.system_prompt_move, user_prompt
 
-    def format_command_prompt(self, user_command: str, max_depth: int = 5) -> Tuple[str]:
+    def format_command_prompt(self, user_command: str, max_depth: int = 1) -> Tuple[str]:
         """
         자연어 -> 스크립트를 생성하기 위한 LLM 프롬프트를 생성합니다.
 
@@ -233,13 +233,14 @@ class ContextBuilder:
         return self.system_prompt_script, user_prompt
 
     system_prompt_script = "당신은 파일 시스템 자동화 스크립트 생성 전문가입니다.\n" \
-                           "사용자가 제공하는 커스텀 스크립트 명령어들을 하나 이상 조합해 파일 이동·복사·삭제 등 파일 시스템 작업을 수행하는 스크립트를 작성해 주세요.\n" \
-                           "생성된 스크립트가 어떤 역할을 어떻게 수행하는지 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
+                           "사용자가 제공하는 커스텀 스크립트 명령어들을 하나 이상 조합해 작업을 수행하는 스크립트를 작성해 주세요.\n" \
+                           "생성된 스크립트가 어떤 역할을 수행하는지 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
                            "답변 생성 시, 1500 토큰의 글자수 제한이 있으므로 1500 토큰 이내로 답변하세요.\n" \
                            "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
                            "```json\n" \
                            f"{repr(EXAMPLE_PAYLOAD)}\n" \
                            "```"
+
 
     system_prompt_move = "당신은 파일 분류·정리 전문가입니다.\n" \
                          "새로 전달된 파일의 이름·메타데이터·일부 내용을 바탕으로 이 파일을 적절하게 표현할 수 있는 태그들을 10개 생성하고\n" \

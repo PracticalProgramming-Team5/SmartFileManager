@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QFile, QTextStream, Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
+from context_type import ActionCommand, ActionMove, ActionCommandList
 from settings_manager import SettingsManager
 
 SETTINGS_PATH = "./settings.json"
@@ -542,11 +543,12 @@ class MainWindowContent(QWidget):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self):
+    def __init__(self, event_hub):
         super().__init__()
         self.setObjectName("sidebarWidget")
         self.setMinimumSize(WIN_MIN_WIDTH, WIN_MIN_HEIGHT)
         self.setWindowTitle("File Manger")
+        self.event_hub = event_hub
 
         layout = QHBoxLayout()
         self.window_content = MainWindowContent()

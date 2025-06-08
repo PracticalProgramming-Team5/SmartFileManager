@@ -10,36 +10,12 @@ from history_manager import HistoryManager
 from context_builder import ContextBuilder
 from response_parser import ResponseParser
 from directory_monitor import DirectoryMonitor
-from ui_manager import UIManager
 from script_excuter import ScriptExecuter
 from tagdb import FileTagDB
-"""
-이벤트 목록
-    1. 메인 윈도우 오픈 -> UI
-    2. 백그라운드 시작
-    3. 백그라운드 종료
-    4. 창닫기 (백그라운드 상태 포함한) -> UI
-
-    5. 인스턴트 윈도우 오픈 -> UI
-    6. 명령어 입력
-    7. 명령어 응답 전송
-    8. 명령어 실행 요청
-    9. 명령 수행 완료 -> UI, backend
-
-    10. 관심 디렉토리 내 파일 생성 알림 (추천 경로 포함)  -> UI, backend
-    11. move 요청
-
-    12. 핫키 입력 -> UI
-
-class AppEvent:
-    target: str
-    event: str
-    data: object
-"""
 
 class WrapDirectoryMonitor(QObject):
     def __init__(self, event_hub):
-        super.__init__()
+        super().__init__()
         self.event_hub = event_hub
         def parse_monitor(src, dst, code):
             name, data = "", {}
@@ -49,36 +25,38 @@ class WrapDirectoryMonitor(QObject):
                 name, data = "CoreFiledel", {"src":src}
             else:
                 name, data = "CoreFileMov", {"src":src, "dst":dst}
+            # print(name, data, "-------")
             self.event_hub.event.emit(AppEvent(name, data))
+            # print(name, data)
         self.dir_monitor = DirectoryMonitor(parse_monitor)
     def start(self):
+        for dirs in SettingsManager.get('monitoring_dirs'):
+            self.dir_monitor.add_directory(dirs)
         self.dir_monitor.start()
     def stop(self):
         self.dir_monitor.stop()
 
 
 class FileManagerCore(QObject):
-    def __init__(self, event_hub):
+    def __init__(self, event_hub: EventHub):
         super().__init__()
         self.event_hub = event_hub
         self.event_hub.event.connect(self.__process_event)
-        self.runnable = False
-
-        # self.settings_manager = SettingsManager()
+        self.runnable = True
 
         # self.history_manager = HistoryManager()
-        # self.llm_client = LLMClient()
-        self.context_builder = ContextBuilder(self.fs)
-        # self.script_exe = ScriptExecuter()
+        # self.context_builder = ContextBuilder()
         self.tag_db = FileTagDB()
-        # self.res_parse = ResponseParser()
         
-        self.dir_monitor = WrapDirectoryMonitor()
+        self.dir_monitor = WrapDirectoryMonitor(event_hub)
 
-    def __process_event(self, event: EventHub):
+    def __process_event(self, event: AppEvent):
+        print("back:", event.name)
         if event.name == "CoreRun": # 백그라운드 동작
             self.runnable = True
             self.dir_monitor.start()
+            self.event_hub.event.emit(AppEvent("UiResCoreState", self.runnable))
+
         elif event.name == "CoreStop": # 백그라운드 정지
             self.runnable = False
             self.dir_monitor.stop()
@@ -87,76 +65,162 @@ class FileManagerCore(QObject):
         if not self.runnable:
             return
 
-        if event.name == "CoreReqComm": # 유저가 커맨드 제출
+        elif event.name == "CoreReqCommand": # 유저가 커맨드 제출
+            self.context_builder = ContextBuilder()
             system_msg, prompt = self.context_builder.format_command_prompt(event.data)
+            print(system_msg, prompt)
             llm_client = LLMClient()
-            thread = QThread()
-            worker = Worker(lambda: llm_client.query(system_msg = system_msg, prompt = prompt), self.event_hub, "CoreResComm")
-            worker.moveToThread(thread)
-            worker.destroyed.connect(thread.deleteLater)
+            self.thread = QThread()
+            # self.worker = Worker(lambda: llm_client.query(system_msg = system_msg, prompt = prompt), self.event_hub, "CoreResCommand")
+            self.worker = Worker(lambda: None, self.event_hub, "CoreResCommand")
+            self.worker.moveToThread(self.thread)
+            self.worker.finished.connect(self.thread.quit)
+            self.worker.finished.connect(self.worker.deleteLater)
+            self.thread.finished.connect(self.thread.deleteLater)
+            self.thread.started.connect(self.worker.run)
+            self.thread.start()
+
+        elif event.name == "CoreResCommand": # LLM 명령어 응답 도착
+            # msg, success = event.data
+            msg = """```json
+            {
+            "plan": [
+                {
+                "action": "ls",
+                "source": "/Users/ssw/Downloads/test",
+                "destination": "N",
+                "result": "all_files"
+                },
+                {
+                "action": "mask_filename",
+                "source": "all_files",
+                "destination": ".txt",
+                "result": "text_files"
+                },
+                {
+                "action": "move",
+                "source": "text_files",
+                "destination": "/Users/ssw/Downloads/test/실전코딩",
+                "result": ""
+                }
+            ],
+            "explanation": "모든 텍스트 파일을 실전코딩 폴더로 이동합니다."
+            }
+            ```""" 
+            success = LLMErrorCode.SUCCESS
+            print(msg, success)
+            # print(msg, success)
+            # if not success == LLMErrorCode.SUCCESS:
+            #     self.event_hub.event.emit(AppEvent("UiResCommand", {'res': False, 'script':script}))
+            #     return
             
-        elif event.name == "CoreResComm": # LLM 명령어 응답 도착
-            msg, success = event.data
-            if not success == LLMErrorCode.SUCCESS:
-                print("예외 처리 해야 함")
-                return
-            script, success = self.res_parse.parse_action_command(msg)
-            if success:
-                self.event_hub.event.emit(AppEvent("UiResComm", {'res': True, 'script':script}))
-                print("성공 반환")
-            else:
-                self.event_hub.event.emit(AppEvent("UiResComm", {'res': False, 'script':None}))
-                print("실패 반환")
+            # msg = """json
+            # {
+            #     "plan": [],
+            #     "explanation": "사용자가 요청한 작업을 수행할 수 있는 명령어 조합이 없습니다."
+            # }
+            # """
+
+            # msg = """json
+            # {
+            #     "plan": [
+            #         {
+            #         "action": "move",
+            #         "source": "./tmp.py",
+            #         "destination": "./tmp2.py",
+            #         "result": ""
+            #         }
+            #     ],
+            #     "explanation": "tmp.py 파일의 이름을 tmp2.py로 변경합니다."
+            # }
+            # """
+            script, success = ResponseParser.parse_action_command(msg)
+            if not success:
+                script = {'plan': []}
+            # print(script)
+            self.event_hub.event.emit(AppEvent("UiResCommand", script))
         
         elif event.name == "CoreReqOper": # Operation 요청
-            script_exe = ScriptExecuter()
-            thread = QThread()
-            worker = Worker(lambda: script_exe.run_script(event.data), self.event_hub, "CoreResOper")
-            worker.moveToThread(thread)
-            worker.destroyed.connect(thread.deleteLater)
+            self.script_exe = ScriptExecuter()
+            self.thread = QThread()
+            print(event.data)
+            # self.worker = Worker(lambda: llm_client.query(system_msg = system_msg, prompt = prompt), self.event_hub, "CoreResCommand")
+            self.worker = Worker(lambda: self.script_exe.run_script(event.data), self.event_hub, "CoreResOper")
+            self.worker.moveToThread(self.thread)
+            self.worker.finished.connect(self.thread.quit)
+            self.worker.finished.connect(self.worker.deleteLater)
+            self.thread.finished.connect(self.thread.deleteLater)
+            self.thread.started.connect(self.worker.run)
+            self.thread.start()
         elif event.name == "CoreResOper": # Operation 반환
-            e = event.data
-            if e:
+            e = event.data if event.data != "None" else None # 수정 필요
+            print(event.data)
+            self.event_hub.event.emit(AppEvent("UiResOper", e))
+            
+            if not e is None:
                 print("실패", e)
                 return
             print("성공")
         elif event.name == "CoreResDir": # LLM 추천 경로 응답 도착
-            self.event_hub.event.emit(AppEvent("UiResComm", {'res': True, 'script':script}))
+            self.event_hub.event.emit(AppEvent("UiResRecommend", {'res': True, 'script':script}))
         elif event.name == "CoreReqMov": # 유저가 이동 요청
-            src = event.data['src']
-            dest = event.data['dest']
+            src, dest = event.data
             
-            script_exe = ScriptExecuter()
-            thread = QThread()
-            worker = Worker(lambda: script_exe.move(src, dest), self.event_hub, "CoreResMov")
-            worker.moveToThread(thread)
-            worker.destroyed.connect(thread.deleteLater)
+            self.script_exe = ScriptExecuter()
+
+            self.thread = QThread()
+            # self.worker = Worker(lambda: llm_client.query(system_msg = system_msg, prompt = prompt), self.event_hub, "CoreResCommand")
+            self.worker = Worker(lambda: self.script_exe.move(src, dest), self.event_hub, "CoreResMov")
+            self.worker.moveToThread(self.thread)
+            self.worker.finished.connect(self.thread.quit)
+            self.worker.finished.connect(self.worker.deleteLater)
+            self.thread.finished.connect(self.thread.deleteLater)
+            self.thread.started.connect(self.worker.run)
+            self.thread.start()
         elif event.name == "CoreResMov": # 명령 결과
             e = event.data
+            self.event_hub.event.emit(AppEvent("UiResFile", e))
             if e:
                 print("실패", e)
                 return
             print("성공")
         ####
-        if event.name == "CoreFileAdd": # 파일 생성
-            system_msg, prompt = self.context_builder.format_move_prompt(event.data)
-
-            llm_client = LLMClient()
-            thread = QThread()
-            worker = Worker(lambda: llm_client.query(system_msg = system_msg, prompt = prompt), self.event_hub, "CoreFileAddRes")
-            worker.moveToThread(thread)
-            worker.destroyed.connect(thread.deleteLater)
+        elif event.name == "CoreFileAdd": # 파일 생성
+            self.context_builder = ContextBuilder()
+            system_msg, prompt = self.context_builder.format_move_prompt(file_path=event.data['src'], max_depth=1)
+            # print(system_msg, prompt)
+            self.llm_client = LLMClient()
+            # print("check1", event.name)
+            self.thread = QThread()
+            # print("check2", event.name)
+            # self.worker = Worker(lambda: None, self.event_hub, "CoreFileAddRes")
+            self.worker = Worker(lambda: self.llm_client.query(system_msg = system_msg, prompt = prompt), self.event_hub, "CoreFileAddRes")
+            # print("check3", event.name)
+            self.worker.moveToThread(self.thread)
+            self.worker.finished.connect(self.thread.quit)
+            self.worker.finished.connect(self.worker.deleteLater)
+            self.thread.finished.connect(self.thread.deleteLater)
+            self.thread.started.connect(self.worker.run)
+            self.thread.start()
+            # print("check4", event.name)
             # 유저가 검사한 항목이라면 검사하지 않음. -> 일단 그냥 항상 띄움.
             # 1. 적절한 위치를 요청(with getting tag)
             # 2. 태깅
             # 3. UI
         elif event.name == "CoreFileAddRes": # 파일 생성에 대한 LLM 응답
-            self.tag_db.add_file(file_path=event.data.source, tags=event.data.tags)
-            #self.event_hub.emit()
-            print("LLM 응답 -> UI")
+            # print(event.data)
+            res, err = event.data
+            # res = """json\n{\n  "source": "/Users/ssw/Downloads/watchdog_tmp copy.py",\n  "tags": [\n    "python",\n    "script",\n    "temporary",\n    "development",\n    "code",\n    "programming",\n    "automation",\n    "file_monitoring",\n    "backup",\n    "project"\n  ],\n  "destination": [\n    "/Users/ssw/Documents/school/25_practical_programming/team5/src",\n    "/Users/ssw/Downloads/tmp_sources",\n    "/Users/ssw/Downloads/test"\n  ],\n  "explanation": [\n    "/Users/ssw/Documents/school/25_practical_programming/team5/src을 추천하는 이유: 프로젝트 관련 소스 코드가 저장되는 디렉토리로 보이며, Python 스크립트가 여기에 적합합니다.",\n    "/Users/ssw/Downloads/tmp_sources을 추천하는 이유: 임시 소스 파일을 저장하기에 적합한 디렉토리로 보입니다.",\n    "/Users/ssw/Downloads/test을 추천하는 이유: 테스트 및 임시 파일을 저장하기에 적합한 디렉토리로 보입니다."\n  ]\n}\n"""
+            res, err = ResponseParser.parse_action_move(res)
+            # print(res)
+            print("파일 생성")
+            self.tag_db.add_file(file_path=res['source'], tags=['tags'])
+            self.event_hub.event.emit(AppEvent("UiAddFile", res))
         elif event.name == "CoreFileMov": # 파일 이동
-            self.tag_db.rename_file(old_path=event.data['old_data'], new_path=event.data['new_path']) # 수정
+            print("파일 이동")
+            self.tag_db.rename_file(old_path=event.data['src'], new_path=event.data['dst']) # 수정
         elif event.name == "CoreFileDel": # 파일 삭제
+            print("파일 삭제")
             self.tag_db.delete_file(file_path=event.data.source)
     
     def __clear(self):

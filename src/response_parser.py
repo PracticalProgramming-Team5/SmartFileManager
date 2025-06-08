@@ -54,6 +54,7 @@ def _check_command(restrict : Tuple, cmd : Dict):
     1. action이 허용된 api로만 구성되는가?
     2. source / destination이 감시 중인 디렉토리의 하위 폴더인가?
     """
+    print('_check_command', cmd)
     action = cmd.get("action")
     if action and action not in restrict:
         return f"unavailable action: {action}"
@@ -72,6 +73,7 @@ def _check_command(restrict : Tuple, cmd : Dict):
         else: return f"cannot parse paths: {paths}"
 
         for p in paths:
+            if "/" not in p and "\\" not in p: continue
             p=Path(p).resolve()
             if not any(p.is_relative_to(base) for base in base_paths):
                 return f"unavailable path: {p}"

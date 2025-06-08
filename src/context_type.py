@@ -65,7 +65,7 @@ EXAMPLE_PAYLOAD_ = ActionCommandList(
         ActionCommand(
             action="mask_filename",
             source="pictures_files",
-            destination=('*.png', '*.jpg', '*.jpeg', '*.webp'),
+            destination=('.png', '.jpg', '.jpeg', '.webp'),
             result="masked_files"
         ),
         ActionCommand(
