@@ -62,7 +62,7 @@ class UIManager(QObject):
         UI 시작
         """
         self.event_hub.event.emit(AppEvent("UiOpenMainWin", None))
-        self.event_hub.event.emit(AppEvent("CoreRun", None))
+        # self.event_hub.event.emit(AppEvent("CoreRun", None))
     
     # @pyqtSlot(object)
     def __process_event(self, event: AppEvent):
@@ -84,6 +84,7 @@ class UIManager(QObject):
 
         elif event.name == "UiResCoreState": # 코어 상태 업데이트(T/F)
             self.core_state = event.data # 싱크 안맞을 가능성이  있긴함.
+            self.window_main.toggle(self.core_state)
         elif event.name == "UiResHistory": # 히스토리 결과 도착
             pass
         elif event.name == "UiResCommand": # 커맨드 요청에 대한 LLM 응답

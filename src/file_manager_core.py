@@ -42,7 +42,7 @@ class FileManagerCore(QObject):
         super().__init__()
         self.event_hub = event_hub
         self.event_hub.event.connect(self.__process_event)
-        self.runnable = True
+        self.runnable = False
         self.tag_db = FileTagDB()
         
         self.dir_monitor = WrapDirectoryMonitor(event_hub)
