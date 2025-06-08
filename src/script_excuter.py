@@ -71,30 +71,30 @@ class ScriptExecuter:
             except Exception as e:
                 return f"failed to rollback: {e}"
 
-a = ScriptExecuter()
+# a = ScriptExecuter()
 
-sc = [
-    {
-        "action": "mkdir",
-        "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
-        "destination": "",
-        "result":""
-    },
-    {
-        "action": "mask_filename",
-        "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더",
-        "destination": [".jpg", ".png"],
-        "result":"image_files"
-    },
-    {
-        "action":"move",
-        "source":"image_files",
-        "destination":"C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
-        "result":""
-    }
-]
+# sc = [
+#     {
+#         "action": "mkdir",
+#         "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
+#         "destination": "",
+#         "result":""
+#     },
+#     {
+#         "action": "mask_filename",
+#         "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더",
+#         "destination": [".jpg", ".png"],
+#         "result":"image_files"
+#     },
+#     {
+#         "action":"move",
+#         "source":"image_files",
+#         "destination":"C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
+#         "result":""
+#     }
+# ]
 
-a.run_script(sc)
-print()
-input()
-a.rollback()
+# a.run_script(sc)
+# print()
+# input()
+# a.rollback()
