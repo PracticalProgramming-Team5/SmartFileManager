@@ -38,7 +38,7 @@ class FileSystemManager:
                 raise ValueError("복수 파일 복사 시 destination은 디렉토리여야 합니다.")
             rollback_list = []
             for s in source:
-                _, rollback = FileSystemManager.move(s, destination)
+                _, rollback = FileSystemManager.move(s, destination+f"/{os.path.basename(s)}")
                 rollback_list.append(rollback)
             return None, rollback_list
         
