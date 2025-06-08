@@ -45,6 +45,7 @@ class ScriptExecuter:
             for instruction in script:
                 self.execute_instruction(instruction)
         except Exception as e:
+            print(e)
             self.rollback()
             return str(e)
         return None
@@ -69,32 +70,53 @@ class ScriptExecuter:
                 destination = self.resolve(cmd['destination'])
                 self.actions[action](source, destination)
             except Exception as e:
+                print(e)
                 return f"failed to rollback: {e}"
 
-# a = ScriptExecuter()
+a = ScriptExecuter()
 
-# sc = [
-#     {
-#         "action": "mkdir",
-#         "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
-#         "destination": "",
-#         "result":""
-#     },
-#     {
-#         "action": "mask_filename",
-#         "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더",
-#         "destination": [".jpg", ".png"],
-#         "result":"image_files"
-#     },
-#     {
-#         "action":"move",
-#         "source":"image_files",
-#         "destination":"C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
-#         "result":""
-#     }
-# ]
+sc = [
+    {
+        "action": "mkdir",
+        "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
+        "destination": "",
+        "result":""
+    },
+    {
+        "action": "mask_filename",
+        "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더",
+        "destination": [".jpg", ".png"],
+        "result":"image_files"
+    },
+    {
+        "action":"move",
+        "source":"image_files",
+        "destination":"C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
+        "result":""
+    }
+]
+sc2 = [
+    {
+        "action": "ls",
+        "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더",
+        "destination": "N",
+        "result": "all_files"
+    },
+    {
+        "action": "mask_filename",
+        "source": "all_files",
+        "destination": ".txt",
+        "result": "text_files"
+    },
+    {
+        "action": "move",
+        "source": "text_files",
+        "destination": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
+        "result": ""
+    }
+]
 
-# a.run_script(sc)
-# print()
-# input()
-# a.rollback()
+a.run_script(sc2)
+print()
+input()
+a.rollback()
