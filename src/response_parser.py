@@ -73,6 +73,7 @@ def _check_command(restrict : Tuple, cmd : Dict):
         else: return f"cannot parse paths: {paths}"
 
         for p in paths:
+            if "/" not in p and "\\" not in p: continue
             p=Path(p).resolve()
             if not any(p.is_relative_to(base) for base in base_paths):
                 return f"unavailable path: {p}"
