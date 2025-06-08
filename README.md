@@ -8,7 +8,7 @@ write some features after implementation
 
 ## Members
 | Name | Role | 
-| ------ | ------ | ------ |
+| ------ | ------ |
 | 주현수 | Team leader | 
 | 신승원 | your role | 
 | 조영우 | your role | 
