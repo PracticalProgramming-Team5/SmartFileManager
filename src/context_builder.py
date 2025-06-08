@@ -81,7 +81,7 @@ class ContextBuilder:
         details = None
         thumbnail = None
         try:
-            _get_item_metadata(file_path)
+            file_context = _get_item_metadata(file_path)
         except Exception as e:
             return None, None, None
 
