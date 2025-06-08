@@ -59,6 +59,7 @@ class FileManagerCore(QObject):
             self.runnable = False
             self.dir_monitor.stop()
             self.__clear()
+            self.event_hub.event.emit(AppEvent("UiResCoreState", self.runnable))
         
         if not self.runnable:
             return

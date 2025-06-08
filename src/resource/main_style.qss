@@ -92,13 +92,16 @@ QMainWindow {
 }
 
 #BtnRemove {
-    border-radius: 10px;
-    color: #000000;
+    border-radius: 0px;
+    color:rgb(0, 0, 0);
+
+    font-size: 24pt;
 }
 
 #BtnRemove:focus, #BtnRemove:hover{
-    background-color:rgb(255, 132, 138);
     outline: none;
+    color: rgb(168, 0, 0);
+    border
 }
 
 
@@ -107,9 +110,49 @@ QMainWindow {
     color:rgb(176, 176, 176);
 }
 
+#BtnRun {
+    border-radius: 6px;
+    padding: 6px;
+    background-color:rgb(185, 255, 179);
+    border: 3px solid rgb(0, 179, 18);
+    color: #000000;
+}
+
+#BtnRun:focus, #BtnRun:hover{
+    border: 2px solid rgb(157, 255, 100);
+    border: 3px solid rgb(0, 146, 15);
+    outline: none;
+}
+
+
+#BtnRun:disabled {
+    border: 2px solid #ccc;
+    color:rgb(176, 176, 176);
+}
+
+#BtnStop {
+    border-radius: 6px;
+    padding: 6px;
+    background-color:rgb(255, 179, 179);
+    border: 3px solid rgb(179, 0, 0);
+    color: #000000;
+}
+
+#BtnStop:focus, #BtnStop:hover{
+    border: 2px solid rgb(255, 100, 100);
+    border: 3px solid rgb(146, 0, 0);
+    outline: none;
+}
+
+
+#BtnStop:disabled {
+    border: 2px solid #ccc;
+    color:rgb(176, 176, 176);
+}
+
 #ListForm {
     background-color:rgb(255, 255, 255);
-    border: 2px solid #111;
+    border: 1px solid #111;
     outline: none;
 }
 
@@ -125,7 +168,7 @@ QMainWindow {
 QLineEdit {
     background-color:rgb(255, 255, 255);
     color: #000000;
-    border: 2px solid #111;
+    border: 1px solid #111;
 }
 QScrollArea {
     background-color:rgba(255, 255, 255, 0);

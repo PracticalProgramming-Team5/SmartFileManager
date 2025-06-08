@@ -81,7 +81,7 @@ class ContentHome(QWidget):
         self.layout.addWidget(label)
 
         self.btn = QPushButton("Run")
-        self.btn.setObjectName("BtnNormal")
+        self.btn.setObjectName("BtnStop")
         self.layout.addWidget(self.btn)
         self.btn.clicked.connect(self.__send)
 
@@ -97,11 +97,15 @@ class ContentHome(QWidget):
         self.state = state
         if state:
             self.btn.setText("Stop")
-            self.btn.setObjectName("BtnRun")
+            self.btn.setObjectName("BtnStop")
         else:
             self.btn.setText("Run")
-            self.btn.setObjectName("BtnStop")
-    
+            self.btn.setObjectName("BtnRun")
+        print(self.btn.objectName())
+        self.btn.style().unpolish(self.btn)
+        self.btn.style().polish(self.btn)
+
+        self.btn.update()
     def get_state(self):
         return self.state
     
