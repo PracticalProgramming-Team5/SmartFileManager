@@ -45,8 +45,8 @@ class ScriptExecuter:
             for instruction in script:
                 self.execute_instruction(instruction)
         except Exception as e:
-            e = self.rollback()
-            return str(e), e
+            self.rollback()
+            return str(e)
         return None
     
     def move(self, source, destination):
@@ -69,3 +69,28 @@ class ScriptExecuter:
                 self.actions[action](source, destination)
             except Exception as e:
                 return f"failed to rollback: {e}"
+
+# a = ScriptExecuter()
+
+# sc = [
+#     {
+#         "action": "mkdir",
+#         "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
+#         "destination": "",
+#         "result":""
+#     },
+#     {
+#         "action": "mask_filename",
+#         "source": "C:/Users/amatu/OneDrive/바탕 화면/새 폴더",
+#         "destination": [".jpg", ".png"],
+#         "result":"image_files"
+#     },
+#     {
+#         "action":"move",
+#         "source":"image_files",
+#         "destination":"C:/Users/amatu/OneDrive/바탕 화면/새 폴더/temp",
+#         "result":""
+#     }
+# ]
+
+# a.run_script(sc)
