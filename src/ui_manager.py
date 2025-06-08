@@ -71,11 +71,11 @@ class UIManager(QObject):
             QTimer.singleShot(100, self.window_main.show)
         elif event.name == "UiCloseMainWin": # 메인 윈도우 닫기
             self.window_main.hide()
-        elif event.name == "UiOpenInstantWin": # 인풋 윈도우 열기
+        elif self.core_state and event.name == "UiOpenInstantWin": # 인풋 윈도우 열기
             self.window_instant.display_window()
         # elif event.name == "UiCloseInstantWin": # 인풋 윈도우 닫기
         #     self.window_instant.hide()
-        elif event.name == "UiOpenRecommendWin": # 추천 윈도우 열기
+        elif self.core_state and event.name == "UiOpenRecommendWin": # 추천 윈도우 열기
             self.window_recoomend.show()
         # elif event.name == "UiCloseRecommendWin": # 추천 윈도우 닫기
         #     self.window_recoomend.hide()
