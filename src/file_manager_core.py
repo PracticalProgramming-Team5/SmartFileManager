@@ -71,8 +71,8 @@ class FileManagerCore(QObject):
             print(system_msg, prompt)
             llm_client = LLMClient()
             self.thread = QThread()
-            # self.worker = Worker(lambda: llm_client.query(system_msg = system_msg, prompt = prompt), self.event_hub, "CoreResCommand")
-            self.worker = Worker(lambda: None, self.event_hub, "CoreResCommand")
+            self.worker = Worker(lambda: llm_client.query(system_msg = system_msg, prompt = prompt), self.event_hub, "CoreResCommand")
+            # self.worker = Worker(lambda: None, self.event_hub, "CoreResCommand")
             self.worker.moveToThread(self.thread)
             self.worker.finished.connect(self.thread.quit)
             self.worker.finished.connect(self.worker.deleteLater)
@@ -81,59 +81,11 @@ class FileManagerCore(QObject):
             self.thread.start()
 
         elif event.name == "CoreResCommand": # LLM 명령어 응답 도착
-            # msg, success = event.data
-            msg = """```json
-            {
-            "plan": [
-                {
-                "action": "ls",
-                "source": "/Users/ssw/Downloads/test",
-                "destination": "N",
-                "result": "all_files"
-                },
-                {
-                "action": "mask_filename",
-                "source": "all_files",
-                "destination": ".txt",
-                "result": "text_files"
-                },
-                {
-                "action": "move",
-                "source": "text_files",
-                "destination": "/Users/ssw/Downloads/test/실전코딩",
-                "result": ""
-                }
-            ],
-            "explanation": "모든 텍스트 파일을 실전코딩 폴더로 이동합니다."
-            }
-            ```""" 
-            success = LLMErrorCode.SUCCESS
-            print(msg, success)
-            # print(msg, success)
-            # if not success == LLMErrorCode.SUCCESS:
-            #     self.event_hub.event.emit(AppEvent("UiResCommand", {'res': False, 'script':script}))
-            #     return
+            msg, success = event.data
             
-            # msg = """json
-            # {
-            #     "plan": [],
-            #     "explanation": "사용자가 요청한 작업을 수행할 수 있는 명령어 조합이 없습니다."
-            # }
-            # """
-
-            # msg = """json
-            # {
-            #     "plan": [
-            #         {
-            #         "action": "move",
-            #         "source": "./tmp.py",
-            #         "destination": "./tmp2.py",
-            #         "result": ""
-            #         }
-            #     ],
-            #     "explanation": "tmp.py 파일의 이름을 tmp2.py로 변경합니다."
-            # }
-            # """
+            success = LLMErrorCode.SUCCESS
+            
+            
             script, success = ResponseParser.parse_action_command(msg)
             if not success:
                 script = {'plan': []}

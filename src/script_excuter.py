@@ -28,7 +28,6 @@ class ScriptExecuter:
         destination = self.resolve(instruction['destination'])
         result = instruction['result']
 
-        print("execute_instruction", self.symbols[result])
         if action not in self.actions:
             raise ValueError(f"Unknown action: {action}")
         
