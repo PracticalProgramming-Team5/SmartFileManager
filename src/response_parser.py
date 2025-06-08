@@ -34,17 +34,16 @@ def _check_move(cmd: Dict):
     explanation = cmd.get("explanation")
     observing_dirs = SettingsManager.get("available_dirs")
     base_paths = [Path(d).resolve() for d in observing_dirs]
-
     if len(tags) != 10:
         return "wrong tags"
-    if not isinstance(dest, list) or len(dest) != 3:
+    if not (isinstance(dest, tuple) or isinstance(dest, list)) or len(dest) != 3:
         return "wrong destination"
     for d in dest:
         d = Path(d).resolve()
         if not any(d.is_relative_to(base) for base in base_paths):
             return f"unavailable path: {d}"
         
-    if not isinstance(explanation, list) or len(explanation) != 3:
+    if not (isinstance(dest, tuple) or isinstance(dest, list)) or len(explanation) != 3:
         return "wrong explanation"
     return False
 
