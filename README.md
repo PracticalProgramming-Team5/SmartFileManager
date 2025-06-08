@@ -7,16 +7,16 @@ LLM-based File organizer
 write some features after implementation
 
 ## Members
-| Name | link | Role | 
+| Name | Role | 
 | ------ | ------ | ------ |
-| 주현수 | [github](https://github.com/amature0000) | Team leader | 
-| 신승원 | [link](write some link) | your role | 
-| 조영우 | [link](write some link) | your role | 
-| 최정필 | [link](write some link) | your role | 
+| 주현수 | Team leader | 
+| 신승원 | your role | 
+| 조영우 | your role | 
+| 최정필 | your role | 
 
 ## Requirements
 Smart Filemanager is 100% python-based program. The main modules are as follows:
-- tkinter / PyQt
+- PyQt
 - watchdog
 - openai
 
@@ -28,11 +28,11 @@ Smart Filemanager is 100% python-based program. The main modules are as follows:
 ### Install the dependencies
 
 ```
-pip install -r requirements.txt
 pip install watchdog
 pip install openai
 pip install tkinter
-pip install pyqt
+pip install pyqt5
+...
 ```
 
 #### Execute the source code
