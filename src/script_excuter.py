@@ -15,7 +15,7 @@ class ScriptExecuter:
         self.rollback_list = []
 
     def resolve(self, value):
-        if isinstance(value, list):
+        if isinstance(value, list) or isinstance(value, tuple):
             return [self.resolve(v) for v in value]
         
         if value in self.symbols:
@@ -27,6 +27,7 @@ class ScriptExecuter:
         source = self.resolve(instruction['source'])
         destination = self.resolve(instruction['destination'])
         result = instruction['result']
+
         if action not in self.actions:
             raise ValueError(f"Unknown action: {action}")
         
@@ -35,7 +36,7 @@ class ScriptExecuter:
         else:
             _, rollback = self.actions[action](source, destination)
 
-        if isinstance(rollback, list):
+        if isinstance(rollback, list) or isinstance(rollback, tuple):
             self.rollback_list.extend(rollback)
         else:
             self.rollback_list.append(rollback)
@@ -45,8 +46,8 @@ class ScriptExecuter:
             for instruction in script:
                 self.execute_instruction(instruction)
         except Exception as e:
-            e = self.rollback()
-            return str(e), e
+            self.rollback()
+            return str(e)
         return None
     
     def move(self, source, destination):

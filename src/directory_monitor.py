@@ -51,8 +51,9 @@ class DirectoryEventHandler(FileSystemEventHandler):
                     else:
                         src, dst = item[2], e_path
 
-                    self.signal(src, dst, 2)
-                    print(f"[on_moved 이벤트] {src} → {dst}")
+                    if src != dst:
+                        self.signal(src, dst, 2)
+                        print(f"[on_moved 이벤트] {src} → {dst}")
 
                     # deque에서 제거(created, deleted 두 이벤트 모두 제거하기)
                     self.history = deque(e for e in self.history if e not in [item, matched_event])
@@ -83,7 +84,7 @@ class DirectoryEventHandler(FileSystemEventHandler):
     def on_moved(self, event):
         src = self._check_valid(event)
         dst = self._check_valid(event, False)
-        if src and dst:
+        if src and dst and src != dst:
             self.signal(src, dst, 2)
             print(f"[on_moved 이벤트] {src} → {dst}")
 

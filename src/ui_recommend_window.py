@@ -1,6 +1,8 @@
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QScrollArea, QStackedLayout, QListWidget, QListWidgetItem, QFileSystemModel, QTreeView, QSizePolicy, QCheckBox
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer, QFile, QTextStream, QSize, QSortFilterProxyModel, QModelIndex
 from PyQt5.QtGui import QCursor, QMovie, QPainter, QLinearGradient, QColor, QBrush, QFontMetrics
+from context_type import ActionCommand, ActionMove, ActionCommandList
+from event_hub import AppEvent, EventHub
 import sys
 from pynput import keyboard
 import platform
@@ -72,54 +74,7 @@ class ScrollingLabel(QWidget):
         self.text = text
         QTimer.singleShot(10, self.update)
 
-class GlobalHotKeyThread(QThread):
-    hotkey_pressed = pyqtSignal()
-    close_pressed = pyqtSignal()
 
-    event_recomend = pyqtSignal(str, list) # 파일명, 추천 경로 목록
-    current_keys = set()
-    
-    
-    def run(self):
-        with keyboard.Listener(on_press=self.__on_press, on_release=self.__on_release) as listener:
-            listener.join()
-
-    def __check_hot_key(self):
-        if all(k in self.current_keys for k in COMBO):
-            return True
-        return False
-    
-    def __check_close(self):
-        if all(k in self.current_keys for k in COMBO2):
-            return True
-        return False
-
-    def __chcek_recommend(self):
-        if all(k in self.current_keys for k in COMBO3):
-            return True
-        return False
-    
-    def __check_oper_completed_event(self):
-        if all(k in self.current_keys for k in COMBO4):
-            return True
-        return False
-    
-    def __on_press(self, key):
-        self.current_keys.add(key)
-        if self.__check_hot_key():
-            self.event_recomend.emit("아아아아아아아아아아아아아아아아아아아아아아아주 긴 파일 명", ['동해물과 백두산이 마르고 닳도록 하느님이 보우하사 우리나라', '동해물과 백두산이 마르고', '닳도록 하는님이 봉후ㅏ사 우리나라 만세 무궁화 삼천리 화려강산'])
-            # self.hotkey_pressed.emit()
-            # self.event_recomend.emit("파일명", ['경로1', '경로2', '경로3'])
-        elif self.__check_close():
-            self.close_pressed.emit()
-        elif self.__chcek_recommend():
-            self.event_recomend.emit("파일명", ['경로1', '경로2', '경로3'])
-    
-    def __on_release(self, key):
-        if key in self.current_keys:
-            self.current_keys.remove(key)
-
-#######
 
 class TimeFilterProxyModel(QSortFilterProxyModel):
     def __init__(self):
@@ -335,6 +290,7 @@ class SelectRecommendWindow(QWidget):
 
         self.selected_callback = lambda: None
         self.selected_path = None
+        self.cur_path = None
         self.layout.addWidget(self.name_label)
         self.layout.addWidget(self.list_widget)
 
@@ -354,38 +310,44 @@ class SelectRecommendWindow(QWidget):
     def __clear_all(self):
         self.name_label.setText("")
         self.selected_path = None
+        self.cur_path = None
         self.list_widget.clear()
     
     def set_selected_callback(self, func):
         self.selected_callback = func
     
-    def set_recommend(self, filename, recommend_dirs):
+    def set_recommend(self, recommend: ActionMove):
         self.__clear_all()
-        self.name_label.setText(filename + " to ..")
-        for path in recommend_dirs:
+        # filename = recommend.source
+        self.cur_path = recommend['source']
+        self.name_label.setText(os.path.basename(self.cur_path) + " to ..")
+        # recommend.explanation
+        for path in recommend['destination']:
             self.__add_item(path)
     
     def get_selected_path(self):
         return self.selected_path
+    def get_current_path(self):
+        return self.cur_path
         
 
 class RecommendWindow(QWidget):
-    def __init__(self):
+    def __init__(self, event_hub: EventHub):
         super().__init__()
         self.setObjectName("RecommendWindow")
         self.isWinsOs = (platform.system() == "Windows")
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.resize(268, 295)
+        self.event_hub = event_hub
 
 
+        # self.__listener_thread = GlobalHotKeyThread()
+        # self.__listener_thread.hotkey_pressed.connect(self.__display_window)
+        # self.__listener_thread.close_pressed.connect(self.close)
+        # self.__listener_thread.event_recomend.connect(self.__recommned)
 
-        self.__listener_thread = GlobalHotKeyThread()
-        self.__listener_thread.hotkey_pressed.connect(self.__display_window)
-        self.__listener_thread.close_pressed.connect(self.close)
-        self.__listener_thread.event_recomend.connect(self.__recommned)
-
-        self.__listener_thread.start()
-        QApplication.instance().aboutToQuit.connect(self.__listener_thread.quit)
+        # self.__listener_thread.start()
+        # QApplication.instance().aboutToQuit.connect(self.__listener_thread.quit)
         self.btn_cancle = QPushButton("Cancle")
         self.btn_cancle.setObjectName("CancleBtn")
         self.btn_cancle.clicked.connect(self.__cancle_response)
@@ -417,12 +379,16 @@ class RecommendWindow(QWidget):
         self.layout_main.addWidget(self.form_stack)
         self.layout_main.addWidget(self.btn_cancle)
 
-        self.select_related_widget.set_path('.', minutes=1000)
+        # self.select_related_widget.set_path('.', minutes=1000)
         
     def __related_selected(self):
-        print("도착지:", self.select_recommend_widget.get_selected_path())
-        print("함께 옮길 파일들:", self.select_related_widget.get_selected_path())
+        # print("원래 파일:", self.select_recommend_widget.get_current_path())
+        # print("도착지:", self.select_recommend_widget.get_selected_path())
+        # print("함께 옮길 파일들:", self.select_related_widget.get_selected_path())
         self.layout_stack.setCurrentIndex(1)
+        src = [self.select_recommend_widget.get_current_path()] + self.select_related_widget.get_selected_path()
+        dest = self.select_recommend_widget.get_selected_path()
+        self.event_hub.event.emit(AppEvent("CoreReqMov", (src, dest)))
         self.__cancle_response()
 
         # 여기에서 함수 호출  
@@ -432,9 +398,10 @@ class RecommendWindow(QWidget):
         self.select_related_widget.check_item_is()
 
 
-    def __recommned(self, filename, dirs):
+    def on_recommned(self, recommend: ActionMove):
         if not self.isVisible():
-            self.select_recommend_widget.set_recommend(filename, dirs)
+            self.select_recommend_widget.set_recommend(recommend)
+            self.select_related_widget.set_path(recommend['source'], minutes=10)
             self.layout_stack.setCurrentIndex(0)
         QTimer.singleShot(1, self.__display_window)
 

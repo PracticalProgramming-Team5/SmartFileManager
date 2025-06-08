@@ -34,17 +34,16 @@ def _check_move(cmd: Dict):
     explanation = cmd.get("explanation")
     observing_dirs = SettingsManager.get("available_dirs")
     base_paths = [Path(d).resolve() for d in observing_dirs]
-
     if len(tags) != 10:
         return "wrong tags"
-    if not isinstance(dest, list) or len(dest) != 3:
+    if not (isinstance(dest, tuple) or isinstance(dest, list)) or len(dest) != 3:
         return "wrong destination"
     for d in dest:
         d = Path(d).resolve()
         if not any(d.is_relative_to(base) for base in base_paths):
             return f"unavailable path: {d}"
         
-    if not isinstance(explanation, list) or len(explanation) != 3:
+    if not (isinstance(dest, tuple) or isinstance(dest, list)) or len(explanation) != 3:
         return "wrong explanation"
     return False
 
@@ -55,6 +54,7 @@ def _check_command(restrict : Tuple, cmd : Dict):
     1. action이 허용된 api로만 구성되는가?
     2. source / destination이 감시 중인 디렉토리의 하위 폴더인가?
     """
+    print('_check_command', cmd)
     action = cmd.get("action")
     if action and action not in restrict:
         return f"unavailable action: {action}"
@@ -73,6 +73,7 @@ def _check_command(restrict : Tuple, cmd : Dict):
         else: return f"cannot parse paths: {paths}"
 
         for p in paths:
+            if "/" not in p and "\\" not in p: continue
             p=Path(p).resolve()
             if not any(p.is_relative_to(base) for base in base_paths):
                 return f"unavailable path: {p}"

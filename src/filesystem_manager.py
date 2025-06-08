@@ -33,12 +33,12 @@ class FileSystemManager:
             raise ValueError("source가 필요합니다.")
         if not destination:
             raise ValueError("destination가 필요합니다.")
-        if isinstance(source, list):
+        if isinstance(source, list) or isinstance(source, tuple):
             if not os.path.isdir(destination):
                 raise ValueError("복수 파일 복사 시 destination은 디렉토리여야 합니다.")
             rollback_list = []
             for s in source:
-                _, rollback = FileSystemManager.move(s, destination)
+                _, rollback = FileSystemManager.move(s, destination+f"/{os.path.basename(s)}")
                 rollback_list.append(rollback)
             return None, rollback_list
         
@@ -58,7 +58,7 @@ class FileSystemManager:
         if not destination:
             raise ValueError("destination가 필요합니다.")
         
-        if isinstance(source, list):
+        if isinstance(source, list) or isinstance(source, tuple):
             if not os.path.isdir(destination):
                 raise ValueError("복수 파일 복사는 destination이 디렉토리여야 합니다.")
             rollback_list = []
@@ -88,7 +88,7 @@ class FileSystemManager:
         backup_dir = tempfile.mkdtemp(prefix=FileSystemManager.prefix)
         
         rollback_cmds = []
-        if not isinstance(source, list):
+        if not (isinstance(source, list) or isinstance(source, tuple)):
             source = [source]
         i = 0
         for s in source:
@@ -112,7 +112,7 @@ class FileSystemManager:
         if not source:
             raise ValueError("source가 필요합니다.")
         
-        if not isinstance(source, list):
+        if not (isinstance(source, list) or isinstance(source, tuple)):
             source = [source]
 
         rollback_list = []
@@ -150,36 +150,30 @@ class FileSystemManager:
     @staticmethod
     def mask_filename(source, destination):
         """
-        명령어: {"action":"mask_filename", "source":"탐색할 디렉토리의 절대 경로", "destination":"일치하는 파일명을 탐색할 조건(정규표현식)", "result":"결과를 담을 심볼"}
-        설명: source 디렉토리로부터 재귀적으로 탐색하여, destination 정규표현식에 맞는 파일명들만을 반환합니다.
+        명령어: {"action":"mask_filename", "source":"탐색할 파일들의 리스트", "destination":"탐색 키워드", "result":"결과를 담을 심볼"}
+        설명: source 파일명 리스트로부터, destination 키워드를 포함하는 파일명들만을 반환합니다.
         인자: action, source, destination, result 인자를 모두 작성하십시오. 
         """
-        if not source:
+        if not isinstance(source, list):
+            print(source)
+            print("asdf")
             raise ValueError("source가 필요합니다.")
         if not destination:
             raise ValueError("destination가 필요합니다.")
         
         matched_files = []
         
-        if isinstance(source, list):
-            for s in source:
-                result, _ = FileSystemManager.mask_filename(s, destination)
-                matched_files.extend(result)
-            return list(set(matched_files)), None
         if isinstance(destination, list):
             for d in destination:
                 result, _ = FileSystemManager.mask_filename(source, d)
                 matched_files.extend(result)
             return list(set(matched_files)), None
         
-        pattern = re.compile(destination)
-        for root, dirs, files in os.walk(source):
-            for fname in files:
-                if pattern.search(fname):
-                    full_path = os.path.join(root, fname)
-                    matched_files.append(full_path)
-
+        for s in source:
+            if destination in s:
+                matched_files.append(s)
         return list(set(matched_files)), None
+
     
     @staticmethod
     def clean_temp():

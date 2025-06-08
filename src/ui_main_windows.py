@@ -7,7 +7,8 @@ from PyQt5.QtWidgets import (
     QListWidgetItem)
 from PyQt5.QtCore import QFile, QTextStream, Qt, pyqtSignal
 from PyQt5.QtGui import QFont
-
+from event_hub import AppEvent, EventHub
+from context_type import ActionCommand, ActionMove, ActionCommandList
 from settings_manager import SettingsManager
 
 SETTINGS_PATH = "./settings.json"
@@ -68,8 +69,9 @@ class MainWindowSideBar(QWidget):
         sender.setChecked(True)
 
 class ContentHome(QWidget):
-    def __init__(self):
+    def __init__(self, event_hub):
         super().__init__()
+        self.event_hub = event_hub
         self.setObjectName("ContentHome")
         self.setProperty("parent", "MainWindowContent")
 
@@ -78,16 +80,40 @@ class ContentHome(QWidget):
         label.setObjectName("h1")
         self.layout.addWidget(label)
 
-        btn = QPushButton("Run")
-        btn.setObjectName("BtnNormal")
-        self.layout.addWidget(btn)
+        self.btn = QPushButton("Run")
+        self.btn.setObjectName("BtnStop")
+        self.layout.addWidget(self.btn)
+        self.btn.clicked.connect(self.__send)
 
         
         self.layout.addStretch()
         self.setLayout(self.layout)
-        btn = self.layout.itemAt(1).widget()
-        # btn.clicked.connect(lambda: print("clicked"))
+        self.state = False
+        # self.btn = self.layout.itemAt(1).widget()
+
+        self.toggle(False)
+        
+    def toggle(self, state):
+        self.state = state
+        if state:
+            self.btn.setText("Stop")
+            self.btn.setObjectName("BtnStop")
+        else:
+            self.btn.setText("Run")
+            self.btn.setObjectName("BtnRun")
+        print(self.btn.objectName())
+        self.btn.style().unpolish(self.btn)
+        self.btn.style().polish(self.btn)
+
+        self.btn.update()
+    def get_state(self):
+        return self.state
     
+    def __send(self):
+        if self.state:
+            self.event_hub.event.emit(AppEvent("CoreStop", None))
+        else:
+            self.event_hub.event.emit(AppEvent("CoreRun", None))
     # def __set_background_control(self, func):
     #     self.layout.itemAt(1).widget().clicked.connect(func)
         
@@ -522,14 +548,16 @@ class ContentSettings(QWidget):
         
     
 class MainWindowContent(QWidget):
-    def __init__(self):
+    def __init__(self, event_hub):
         super().__init__()
+        self.event_hub = event_hub
         self.setObjectName("MainWindowContent")
         self.setAttribute(Qt.WA_StyledBackground, True)
 
         self.layout = QStackedLayout()
 
-        self.layout.addWidget(ContentHome())
+        self.home = ContentHome(event_hub)
+        self.layout.addWidget(self.home)
         self.layout.addWidget(ContentHistory())
         self.layout.addWidget(ContentSettings())
         
@@ -542,14 +570,15 @@ class MainWindowContent(QWidget):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self):
+    def __init__(self, event_hub):
         super().__init__()
         self.setObjectName("sidebarWidget")
         self.setMinimumSize(WIN_MIN_WIDTH, WIN_MIN_HEIGHT)
         self.setWindowTitle("File Manger")
+        self.event_hub = event_hub
 
         layout = QHBoxLayout()
-        self.window_content = MainWindowContent()
+        self.window_content = MainWindowContent(event_hub)
         self.window_sidebar = MainWindowSideBar()
         self.window_sidebar.set_clicked_action(self.__update_tab) 
         layout.setContentsMargins(0, 0, 0, 0)
@@ -576,6 +605,17 @@ class MainWindow(QMainWindow):
     def __update_tab(self):
         sender = self.sender()
         self.window_content.update_tab(sender.get_name())
+    
+    def toggle(self, state):
+        self.window_content.home.toggle(state)
+    
+    def closeEvent(self, event):
+        # if self.window_content.home.get_state():
+        #     event.ignore()
+        #     self.hide()
+        #     return
+        QApplication.quit()
+        super().closeEvent(event)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

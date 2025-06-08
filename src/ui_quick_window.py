@@ -1,10 +1,15 @@
 from PyQt5.QtWidgets import QApplication, QLineEdit, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QScrollArea
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, QTimer, QFile, QTextStream, QSize
 from PyQt5.QtGui import QCursor, QMovie, QPainter, QLinearGradient, QColor, QBrush
+from context_type import ActionCommand, ActionMove, ActionCommandList
 import sys
 from pynput import keyboard
 import platform
 from enum import Enum
+from event_hub import AppEvent
+
+PATH_RESOURCE = "./resource/"
+PATH_STYLE_SHEET = "quick_style.qss"
 
 class LifeCycle(Enum):
     TYPING = 0 # 사용자로부터 입력을 받는 상태
@@ -12,64 +17,6 @@ class LifeCycle(Enum):
     RESPONDED = 2 # LLM으로 부터 응답이 온 상태
     OPERATING = 3 # 사용자가 동작을 수락하고 동작중인 상태
     OPERATED = 4 # 동작이 완료된 상태
-
-COMBO = {keyboard.Key.shift, keyboard.Key.space} # 팝업 이벤트 핫키
-COMBO2 = {keyboard.Key.cmd, keyboard.Key.shift} # 닫기 이벤트 핫키
-COMBO3 = {keyboard.Key.ctrl, keyboard.KeyCode.from_char('c')} # dummy 이벤트(llm 응답 옴) 발생을 위한 핫키
-COMBO4 = {keyboard.Key.ctrl, keyboard.KeyCode.from_char('v')} # dummy 이벤트(opeation 수행됨) 발생을 위한 핫키
-
-PATH_RESOURCE = "./resource/"
-PATH_STYLE_SHEET = "quick_style.qss"
-
-
-class GlobalHotKeyThread(QThread):
-    hotkey_pressed = pyqtSignal()
-    close_pressed = pyqtSignal()
-
-    event_llm_response = pyqtSignal(bool, str, str) # 요청 성공 여부, 동작 요약 메시지, 추가 정보
-    event_completed_operation = pyqtSignal(bool, str) # 동작 수행 여부, 설명
-    current_keys = set()
-    
-    
-    def run(self):
-        with keyboard.Listener(on_press=self.__on_press, on_release=self.__on_release) as listener:
-            listener.join()
-
-    def __check_hot_key(self):
-        if all(k in self.current_keys for k in COMBO):
-            return True
-        return False
-    
-    def __check_close(self):
-        if all(k in self.current_keys for k in COMBO2):
-            return True
-        return False
-
-    def __check_llm_response_event(self):
-        if all(k in self.current_keys for k in COMBO3):
-            return True
-        return False
-    
-    def __check_oper_completed_event(self):
-        if all(k in self.current_keys for k in COMBO4):
-            return True
-        return False
-    
-    def __on_press(self, key):
-        self.current_keys.add(key)
-        if self.__check_hot_key():
-            self.hotkey_pressed.emit()
-        elif self.__check_close():
-            self.close_pressed.emit()
-        elif self.__check_llm_response_event():
-            self.event_llm_response.emit(True, "동작 설명 메시지.", "경고 메시지. 없으면 빈 문자열 제출")
-        elif self.__check_oper_completed_event():
-            self.event_completed_operation.emit(True, "명령 수행 결과 메시지.")
-            # self.event_completed_operation.emit(True, "명령 수행중 다음 문제가 발생했습니다. 이런 저런 문제 발생.")
-    
-    def __on_release(self, key):
-        if key in self.current_keys:
-            self.current_keys.remove(key)
 
 class QuickInput(QLineEdit):
     def __init__(self):
@@ -256,21 +203,23 @@ class LLMStatusWidget(QWidget):
         self.btn_ok.setEnabled(btn_ok)
         
 class InstantWindow(QWidget):
-    def __init__(self):
+    def __init__(self, event_hub):
         super().__init__()
         self.__state = LifeCycle.TYPING
         self.isWinsOs = (platform.system() == "Windows")
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.status_widget = None
-        self.__listener_thread = GlobalHotKeyThread()
-        self.__listener_thread.hotkey_pressed.connect(self.__display_window)
-        self.__listener_thread.close_pressed.connect(self.close)
-        self.__listener_thread.event_completed_operation.connect(self.__on_operation_response)
-        self.__listener_thread.event_llm_response.connect(self.__on_llm_response)
+        self.event_hub = event_hub
 
-        self.__listener_thread.start()
-        QApplication.instance().aboutToQuit.connect(self.__listener_thread.quit)
+        self.status_widget = None
+        # self.__listener_thread = GlobalHotKeyThread()
+        # self.__listener_thread.hotkey_pressed.connect(self.__display_window)
+        # self.__listener_thread.close_pressed.connect(self.close)
+        # self.__listener_thread.event_completed_operation.connect(self.__on_operation_response)
+        # self.__listener_thread.event_llm_response.connect(self.__on_llm_response)
+
+        # self.__listener_thread.start()
+        # QApplication.instance().aboutToQuit.connect(self.__listener_thread.quit)
 
 
         self.layout = QVBoxLayout(self)
@@ -305,30 +254,36 @@ class InstantWindow(QWidget):
             self.__add_status_widget()
             QTimer.singleShot(5, lambda: self.input.setEnabled(False))
             self.status_widget.set_btn_enabled(True, False)
+            print(self.input.text())
+            self.event_hub.event.emit(AppEvent("CoreReqCommand", self.input.text()))
             return
     
         if self.status_widget is None:
             self.__update_cycle(self.__state, LifeCycle.TYPING)
 
         if cur_state == LifeCycle.SUBMITTED and next_state == LifeCycle.RESPONDED:
-            if [param for param in ("status", 'message', 'feature') if param not in kwargs]:
+            if [param for param in ("data", 'feature') if param not in kwargs]:
                 self.__update_cycle(self.__state, LifeCycle.TYPING)
                 return
-            
-            status = kwargs['status']
-            message = kwargs['message']
+            data = kwargs['data']
             feature = kwargs['feature']
+
+            message = data['explanation']
             # if feature:
             #     print(feature) 
-            self.status_widget.show_feature()
-            if status:
+            
+            if data['plan']:
                 self.status_widget.set_message(message)
-                QTimer.singleShot(5, lambda: self.status_widget.set_feature(feature))
+                if feature:
+                    QTimer.singleShot(5, lambda: self.status_widget.set_feature(feature))
+                    self.status_widget.show_feature()
                 self.status_widget.set_btn_enabled(True, True)
-                self.status_widget.set_clicked_action_ok(self.__run_operation)
+                self.status_widget.set_clicked_action_ok(lambda: self.__run_operation(data['plan']))
             else:
                 self.status_widget.set_message(message)
-                self.status_widget.set_feature(feature)
+                if feature:
+                    self.status_widget.set_feature(feature)
+                    self.status_widget.show_feature()
                 self.status_widget.set_btn_enabled(False, True)
                 self.status_widget.set_clicked_action_ok(self.__cancle_response)
             
@@ -338,18 +293,21 @@ class InstantWindow(QWidget):
         if cur_state == LifeCycle.RESPONDED and next_state == LifeCycle.OPERATING:
             # self.__dummy_focus.setFocusPolicy(Qt.StrongFocus)
             # self.__dummy_focus.setFocus()
+            if not "script" in kwargs:
+                self.__update_cycle(self.__state, LifeCycle.TYPING)
+                return
+            
             self.status_widget.set_btn_enabled(False, False)
             self.status_widget.show_result()
-            print("작업 수행 요청")
+            self.event_hub.event.emit(AppEvent("CoreReqOper", kwargs['script']))
             return
         
         if cur_state == LifeCycle.OPERATING and next_state == LifeCycle.OPERATED:
 
-            if [param for param in ("status", 'result') if param not in kwargs]:
+            if not 'result' in kwargs:
                 self.__update_cycle(self.__state, LifeCycle.TYPING)
                 return
             
-            status = kwargs['status']
             result = kwargs['result']
             self.status_widget.set_result(result)
             self.status_widget.set_btn_enabled(False, True)
@@ -361,7 +319,7 @@ class InstantWindow(QWidget):
     def __submit(self):
         self.__update_cycle(self.__state, LifeCycle.SUBMITTED)
 
-    def __display_window(self):
+    def display_window(self):
 
         if self.isVisible():
             self.hide()
@@ -392,17 +350,18 @@ class InstantWindow(QWidget):
         print("cancle")
         self.__update_cycle(self.__state, LifeCycle.TYPING)
 
-    def __run_operation(self):  
+    def __run_operation(self, script):  
         print("run")
-        self.__update_cycle(self.__state, LifeCycle.OPERATING)
+        self.__update_cycle(self.__state, LifeCycle.OPERATING, script=script)
 
-    def __on_llm_response(self, status, message, feature):
+    def on_llm_response(self, data: ActionCommandList):
+        
         print("on response")
-        self.__update_cycle(self.__state, LifeCycle.RESPONDED, status=status, message=message, feature=feature)
+        self.__update_cycle(self.__state, LifeCycle.RESPONDED, data=data, feature="")
     
-    def __on_operation_response(self, status, result):
+    def on_operation_response(self, message):
         print("completed")
-        self.__update_cycle(self.__state, LifeCycle.OPERATED, status=status, result=result)
+        self.__update_cycle(self.__state, LifeCycle.OPERATED, result=message)
 
     def __move_window(self): 
         mouse_pos = QCursor.pos()
