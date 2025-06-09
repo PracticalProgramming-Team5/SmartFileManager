@@ -1,4 +1,3 @@
-import re
 import os
 import shutil
 from typing import Any, Callable, Dict
@@ -155,8 +154,6 @@ class FileSystemManager:
         인자: action, source, destination, result 인자를 모두 작성하십시오. 
         """
         if not isinstance(source, list):
-            print(source)
-            print("asdf")
             raise ValueError("source가 필요합니다.")
         if not destination:
             raise ValueError("destination가 필요합니다.")

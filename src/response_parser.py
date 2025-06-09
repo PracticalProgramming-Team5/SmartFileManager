@@ -1,14 +1,10 @@
 import re
-from typing import List, Dict, Tuple, Sequence, Optional
-from pydantic import BaseModel, ValidationError, TypeAdapter
+from typing import Dict, Tuple, Sequence, Optional
+from pydantic import ValidationError, TypeAdapter
 import json
 from settings_manager import SettingsManager
 from context_type import ActionCommandList, ActionMove
 from pathlib import Path
-
-"""
-JHS
-"""
 
 def _extract_json(text: str) -> str:
     """

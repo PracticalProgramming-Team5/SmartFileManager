@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any
+from typing import List, Tuple
 from pydantic import BaseModel
 
 # json 파싱 형식 정의

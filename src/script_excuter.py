@@ -42,6 +42,9 @@ class ScriptExecuter:
             self.rollback_list.append(rollback)
 
     def run_script(self, script):
+        """
+        FS script를 실행합니다.
+        """
         try:
             for instruction in script:
                 self.execute_instruction(instruction)
@@ -51,6 +54,9 @@ class ScriptExecuter:
         return None
     
     def move(self, source, destination):
+        """
+        추천된 경로로 파일을 이동합니다.
+        """
         try:
             _, rollback = FileSystemManager.move(source, destination)
             self.rollback_list.append(rollback)
@@ -60,7 +66,7 @@ class ScriptExecuter:
         
     def rollback(self):
         """
-        rollback list를 받아 역순으로 실행시켜 주는 함수
+        실행한 작업을 되돌리는 함수
         """
         for cmd in reversed(self.rollback_list):
             try:

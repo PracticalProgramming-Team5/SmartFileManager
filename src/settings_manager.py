@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Optional, List
+from typing import Any, Optional
 from  filesystem_manager import FileSystemManager
 
 class SettingsManager:

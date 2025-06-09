@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Sequence, Optional
+from typing import Tuple
 from context_type import EXAMPLE_PAYLOAD, EXAMPLE_PAYLOAD2, EXAMPLE_PAYLOAD_, EXAMPLE_PAYLOAD_2
 import io
 import os
@@ -15,7 +15,6 @@ import mimetypes
 from datetime import datetime
 import base64
 from PIL import Image
-# pip install pillows
 
 
 def _get_item_metadata(file_path: str) -> dict:

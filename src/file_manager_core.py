@@ -1,12 +1,8 @@
-import os
-from typing import List
-from PyQt5.QtCore import QObject, pyqtSlot, QThread, QThreadPool
+from PyQt5.QtCore import QObject, QThreadPool
 from event_hub import EventHub, AppEvent, Worker
 
 from settings_manager import SettingsManager
-from filesystem_manager import FileSystemManager
 from llm_client import LLMClient, LLMErrorCode
-from history_manager import HistoryManager
 from context_builder import ContextBuilder
 from response_parser import ResponseParser
 from directory_monitor import DirectoryMonitor

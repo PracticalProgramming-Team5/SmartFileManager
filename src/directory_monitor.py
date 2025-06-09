@@ -4,9 +4,6 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
 from collections import deque
 import threading
-import sys
-from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot, Qt
 
 class DirectoryEventHandler(FileSystemEventHandler):
     def __init__(self, callback, threshold: float = 3.0):
