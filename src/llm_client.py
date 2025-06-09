@@ -49,13 +49,13 @@ class LLMClient:
     def __init__(self):
         self.update_settings()
 
-    def query(self, system_msg: str, prompt: str, temperature: float = 0.0, max_tokens: int = 1500) -> Tuple[Optional[str], LLMErrorCode]:
+    def query(self, system_msg: str, prompt: str|dict, temperature: float = 0.0, max_tokens: int = 1500) -> Tuple[Optional[str], LLMErrorCode]:
         """
         LLM API에 프롬프트를 보내고 응답을 반환합니다.
 
         Args:
             system_msg(str): LLM의 역할이 지정된 프롬프트
-            prompt(str): LLM에게 질의할 프롬프트
+            prompt(str|dict): LLM에게 질의할 프롬프트
             temperature(float, optional): 프롬프트 파라미터
             max_tokens(int, optional): 프롬프트 파라미터
 
