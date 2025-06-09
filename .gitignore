@@ -1,5 +1,6 @@
 # 
 api_key.json
+settings.json
 *.db
 
 # Byte-compiled / optimized / DLL files
@@ -183,3 +184,4 @@ cython_debug/
 
 # Mac
 .DS_Store
+src/settings.json

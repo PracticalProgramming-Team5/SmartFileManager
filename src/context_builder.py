@@ -63,7 +63,7 @@ class ContextBuilder:
     def __init__(self):
         self.tag = FileTagDB()
 
-    def _get_file_context(self, file_path: str, max_size=1024 * 1024) -> Tuple:
+    def _get_file_context(self, file_path: str, text_max_size=64 * 1024, thumbnail_size=(256, 256)) -> Tuple:
         """
         파일의 메타데이터를 추출합니다.
         텍스트의 경우, 텍스트 일부를 반환합니다.
@@ -71,7 +71,8 @@ class ContextBuilder:
 
         Args:
             file_path: 파일 경로
-            max_size: 담을 파일 정보(본문/썸네일)의 최대 크기 (바이트)
+            text_max_size: 텍스트 파일의 최대 길이
+            thumbnail_size: 이미지 썸네일의 크기
 
         Returns:
             Tuple: file_metadata, details, thumbnail_path
@@ -91,22 +92,14 @@ class ContextBuilder:
         if is_image:
             try:
                 img = Image.open(file_path)
-                img_format = img.format or "JPEG"
-                # 메모리 버퍼에 저장해 크기 확인
-                buf = io.BytesIO()
-                img.save(buf, format=img_format, quality=85)
-                data = buf.getvalue()
-                if len(data) > max_size:
-                    ratio = math.sqrt((max_size / len(data) * 0.5))  # some magic number(0.5)
-                    new_size = (int(img.width * ratio), int(img.height * ratio))
-                    img = img.resize(new_size, Image.Resampling.LANCZOS)
-                # 썸네일 생성 후 경로 전달
+                img.thumbnail(thumbnail_size, Image.Resampling.LANCZOS)
+
                 thumb_dir = os.path.join(tempfile.gettempdir(), "thumbnails")
                 os.makedirs(thumb_dir, exist_ok=True)
                 base, ext = os.path.splitext(os.path.basename(file_path))
-                thumb_path = os.path.join(thumb_dir, f"{base}_thumb{ext}")
+                thumb_path = os.path.join(thumb_dir, f"{base}_thumb.jpg")
+                img.save(thumb_path, format='JPEG', quality=85)
 
-                img.save(thumb_path, format=img_format, quality=85)
                 thumbnail = thumb_path
             except Exception as e:
                 text_fallback = True
@@ -115,8 +108,9 @@ class ContextBuilder:
             try:
                 result = kreuzberg.extract_file_sync(file_path)
                 text = result.content
-                if len(text) > max_size:
-                    text = text[:max_size]
+                text_bytes = text.encode("utf-8")
+                if len(text_bytes) > text_max_size:
+                    text = text_bytes[:text_max_size].decode("utf-8", errors="ignore")
                 details = text
             except Exception as e:  # 텍스트 파일이 아니라면 오류 발생
                 pass
@@ -166,9 +160,11 @@ class ContextBuilder:
 
         return "\n".join(lines)
 
-    def format_move_prompt(self, file_path: str, max_depth: int = 1, max_size: int = 1024 * 1024) -> Tuple[str]:
+    def format_move_prompt(self, file_path: str, max_depth: int = 1, max_size: int = 1024 * 1024) -> Tuple:
         """
         파일의 목적지를 제안하기 위한 LLM 프롬프트를 생성합니다.
+
+        주의: user 프롬프트는 dict 또는 str 값을 가집니다.
 
         Args:
             file_path: 타겟 파일
@@ -176,7 +172,7 @@ class ContextBuilder:
             max_size: 파일 정보의 최대 크기
 
         Returns:
-            Tuple: system, user
+            Tuple: system(str), user(str | dict)
 
         Error:
             Tuple: err_msg, None
@@ -184,23 +180,29 @@ class ContextBuilder:
         file_context, details, thumbnail = self._get_file_context(file_path, max_size)
         if file_context == None: return f"fail to get file:{file_path}", None
         directory_structure = self._get_directory_structure(max_depth=max_depth)
-
-        # image file
-        if thumbnail:
-            image_url = encode_image_base64(thumbnail)
-            content = f"[이미지 (base64 URL)]\n{image_url}\n\n"
-        # text file
-        elif details:
-            content = f"[파일 본문 일부]\n{details}\n\n"
-        # fallback
-        else:
-            content = "[파일 정보 없음]\n\n"
-        user_prompt = (
-            f"아래는 사용자가 분류하려는 파일에 대한 정보입니다. 내용을 참고하세요.\n\n"
-            f"{content}\n\n"
+        
+        content = (
+            f"아래는 사용자가 분류하려는 파일에 대한 정보입니다.\n"\
             f"[파일 메타데이터]\n{json.dumps(file_context, ensure_ascii=False, indent=2)}\n\n"
             f"[현재 디렉토리 구조(최대 깊이 {max_depth})]\n{directory_structure}"
         )
+        user_prompt = None
+        # image file
+        if thumbnail:
+            image_url = encode_image_base64(thumbnail)
+            user_prompt = [
+                {"type": "image_url", "image_url": {"url": image_url}},
+                {"type": "text", "text": content}
+            ]
+        # text file
+        elif details:
+            temp = f"[파일 본문 일부]\n{details}\n\n"
+            user_prompt = temp + content
+        # fallback
+        else:
+            temp = "[파일 정보 없음]\n\n"
+            user_prompt = temp + content
+        
         return self.system_prompt_move, user_prompt
 
     def format_command_prompt(self, user_command: str, max_depth: int = 1) -> Tuple[str]:
@@ -244,10 +246,28 @@ class ContextBuilder:
     system_prompt_move = "당신은 파일 분류·정리 전문가입니다.\n" \
                          "새로 전달된 파일의 이름·메타데이터·일부 내용을 바탕으로 이 파일을 적절하게 표현할 수 있는 태그들을 10개 생성하고\n" \
                          "사용자의 전체 디렉토리 구조와 각 디렉토리에 속한 파일들의 태그(이전에 당신이 생성한 태그들)·메타데이터·이름을 통해 디렉토리 관계를 이해한 후,\n" \
-                         "새로 전달된 파일의 적절한 저장 위치(디렉토리 경로) 3개를 추천해 주세요.\n" \
+                         "새로 전달된 파일의 적절한 저장 위치(디렉토리 경로)를 최대 3개 추천해 주세요.\n" \
                          "해당 경로를 추천하는 이유를 한 줄로 간략히 요약한 글을 작성해 주세요.\n" \
                          "답변 생성 시, 1500 토큰의 글자수 제한이 있으므로 1500 토큰 이내로 답변하세요.\n" \
                          "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
                          "```json\n" \
                          f"{repr(EXAMPLE_PAYLOAD2)}\n" \
                          "```"
+    
+
+# file_path = "C:/Users/juhyu/OneDrive/바탕 화면/"
+# file1 = "thumb_d_2F583E5543F7E19139C6FCFFBF9607A6.jpg"
+# file2 = "images.jfif"
+# c = ContextBuilder()
+# f, d, s = c._get_file_context(file_path+file2)
+# image_url = encode_image_base64(s)
+# system_prompt = "당신은 인지도 검사 실험의 피험자입니다. 파일 정보가 주어졌을 때, 해당 파일이 어떤 의미를 담고 있는지 지시사항에 따라 답변하세요."
+# user_prompt = [
+#     {"type": "image_url", "image_url": {"url": image_url}},
+#     {"type": "text", "text": "이 이미지가 어떤 이미지를 담고 있는지 묘사하세요."}
+# ]
+# from llm_client import LLMClient
+# l = LLMClient()
+# a, b = l.query(system_prompt, user_prompt)
+# print(a)
+# print(b)
