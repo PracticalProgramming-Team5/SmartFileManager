@@ -4,7 +4,9 @@
 LLM-based File organizer
 
 ## Features
-write some features after implementation
+This project is LLM-based file System assistent.
+
+It organizes file to proper directory and process F/S script from natural language.
 
 ## Members
 | Name | Role | 
@@ -15,8 +17,8 @@ write some features after implementation
 | 최정필 | your role | 
 
 ## Requirements
-Smart Filemanager is 100% python-based program. The main modules are as follows:
-- PyQt
+Smart Filemanager is python-based program. The main modules are as follows:
+- PyQt5
 - watchdog
 - openai
 
@@ -30,13 +32,14 @@ Smart Filemanager is 100% python-based program. The main modules are as follows:
 ```
 pip install watchdog
 pip install openai
-pip install tkinter
 pip install pyqt5
-...
+pip install pynput
+pip install kreuzberg
+pip install pydantic
 ```
 
 #### Execute the source code
 
 ```sh
-python main.py
+python src/ui_manager.py
 ```
