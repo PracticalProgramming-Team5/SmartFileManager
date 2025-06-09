@@ -245,13 +245,14 @@ class SelectRelatedFilesWindow(QWidget):
 
 
 class SelectableItemWidget(QWidget):
-    def __init__(self, path, select_callback):
+    def __init__(self, path, select_callback, reason=None):
         super().__init__()
         self.setObjectName("SelectableItemWidget")
         self.layout = QHBoxLayout(self) 
         self.label = ScrollingLabel(path)
         self.path = path
-
+        if not reason is None:
+            self.label.setToolTip(reason)
         self.select_btn = QPushButton(">")
         self.select_btn.setObjectName("BtnSelectRecommend")
         self.select_btn.setFixedWidth(40)
@@ -296,9 +297,9 @@ class SelectRecommendWindow(QWidget):
 
         self.layout.setContentsMargins(0, 11, 0, 0)
         # self.layout.addWidget(ScrollingLabel("asdasf"))
-    def __add_item(self, path):
+    def __add_item(self, path, reason=None):
         item_widget = QListWidgetItem()
-        widget = SelectableItemWidget(path, self.__select_item)
+        widget = SelectableItemWidget(path, self.__select_item, reason)
         item_widget.setSizeHint(widget.sizeHint())
         self.list_widget.addItem(item_widget)
         self.list_widget.setItemWidget(item_widget, widget)
@@ -322,8 +323,12 @@ class SelectRecommendWindow(QWidget):
         self.cur_path = recommend['source']
         self.name_label.setText(os.path.basename(self.cur_path) + " to ..")
         # recommend.explanation
-        for path in recommend['destination']:
-            self.__add_item(path)
+        print(recommend)
+        for i in range(len(recommend['destination'])):
+            # for path in recommend['destination']:
+            path = recommend['destination'][i]
+            reason = recommend['explanation'][i]
+            self.__add_item(path, reason)
     
     def get_selected_path(self):
         return self.selected_path
