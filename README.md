@@ -12,9 +12,9 @@ It organizes file to proper directory and process F/S script from natural langua
 | Name | Role | 
 | ------ | ------ |
 | 주현수 | Team leader | 
-| 신승원 | your role | 
-| 조영우 | your role | 
-| 최정필 | your role | 
+| 신승원 | Team member | 
+| 조영우 | Team member | 
+| 최정필 | Team member | 
 
 ## Requirements
 Smart Filemanager is python-based program. The main modules are as follows:
