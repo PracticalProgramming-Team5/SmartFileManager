@@ -1,5 +1,5 @@
 from typing import Tuple
-from context_type import EXAMPLE_PAYLOAD, EXAMPLE_PAYLOAD2, EXAMPLE_PAYLOAD_, EXAMPLE_PAYLOAD_2
+from context_type import EXAMPLE_PAYLOAD, EXAMPLE_PAYLOAD2, EXAMPLE_PAYLOAD_, EXAMPLE_PAYLOAD_2, EXAMPLE_PAYLOAD3
 import io
 import os
 import tempfile
@@ -160,7 +160,16 @@ class ContextBuilder:
 
         return "\n".join(lines)
 
-    def format_move_prompt(self, file_path: str, max_depth: int = 1, max_size: int = 1024 * 1024) -> Tuple:
+    def format_tag_prompt(self, file_path: str):
+        """
+        파일의 목적지 제안 없이 파일의 태그만을 추천받기 위한 프롬프트입니다.
+
+        주의: user 프롬프트는 dict 또는 str 값을 가집니다.
+        """
+        _, prompt = self.format_move_prompt(file_path)
+        return self.system_prompt_tag, prompt
+
+    def format_move_prompt(self, file_path: str, max_depth: int = 5):
         """
         파일의 목적지를 제안하기 위한 LLM 프롬프트를 생성합니다.
 
@@ -169,7 +178,6 @@ class ContextBuilder:
         Args:
             file_path: 타겟 파일
             max_depth: 디렉토리 구조 탐색 시 최대 깊이
-            max_size: 파일 정보의 최대 크기
 
         Returns:
             Tuple: system(str), user(str | dict)
@@ -177,7 +185,7 @@ class ContextBuilder:
         Error:
             Tuple: err_msg, None
         """
-        file_context, details, thumbnail = self._get_file_context(file_path, max_size)
+        file_context, details, thumbnail = self._get_file_context(file_path)
         if file_context == None: return f"fail to get file:{file_path}", None
         directory_structure = self._get_directory_structure(max_depth=max_depth)
         
@@ -242,6 +250,13 @@ class ContextBuilder:
                            f"{repr(EXAMPLE_PAYLOAD)}\n" \
                            "```"
 
+    system_prompt_tag = "당신은 파일 분류·정리 전문가입니다.\n" \
+                         "새로 전달된 파일의 이름·메타데이터·일부 내용을 바탕으로 이 파일을 적절하게 표현할 수 있는 태그들을 10개 생성하세요.\n" \
+                         "답변 생성 시, 1500 토큰의 글자수 제한이 있으므로 1500 토큰 이내로 답변하세요.\n" \
+                         "반드시 아래 json 스키마에 맞춰, JSON 이외의 텍스트를 전혀 포함하지 말고 출력해야 합니다:\n" \
+                         "```json\n" \
+                         f"{repr(EXAMPLE_PAYLOAD3)}\n" \
+                         "```"
 
     system_prompt_move = "당신은 파일 분류·정리 전문가입니다.\n" \
                          "새로 전달된 파일의 이름·메타데이터·일부 내용을 바탕으로 이 파일을 적절하게 표현할 수 있는 태그들을 10개 생성하고\n" \

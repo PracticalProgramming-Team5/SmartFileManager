@@ -3,7 +3,7 @@ from typing import Dict, Tuple, Sequence, Optional
 from pydantic import ValidationError, TypeAdapter
 import json
 from settings_manager import SettingsManager
-from context_type import ActionCommandList, ActionMove
+from context_type import ActionCommandList, ActionMove, ActionTag
 from pathlib import Path
 
 def _extract_json(text: str) -> str:
@@ -17,6 +17,15 @@ def _extract_json(text: str) -> str:
     match = re.search(r"(\{[\s\S]*\})", text, re.S)
     if match: return match.group(1)
     raise ValueError("no json block in response str.")
+
+def _check_tag(cmd: Dict):
+    """
+    태그 추천 구조가 타당한지 검사
+    """
+    tags = set(cmd.get("tags"))
+    if len(tags) != 10:
+        return "wrong tags"
+    return False
 
 def _check_move(cmd: Dict):
     """
@@ -83,9 +92,10 @@ class ResponseParser:
     """
     actionlist_adapter = TypeAdapter(ActionCommandList)
     actionmove_adapter = TypeAdapter(ActionMove)
+    actiontag_adapter = TypeAdapter(ActionTag)
 
     @classmethod
-    def parse_action_move(cls, llm_response: str) -> Optional[ActionMove]:
+    def parse_action_move(cls, llm_response: str):
         """
         파일 이동에 대한 LLM 응답을 해석하여 명령어 구문을 반환합니다.
 
@@ -93,7 +103,7 @@ class ResponseParser:
             llm_response(str): LLM으로부터 받은 응답
 
         Returns:
-            Tuple: return_value, is_err_msg
+            Tuple: return_value, is_normal
         """
         try:
             json_block = _extract_json(llm_response)
@@ -107,7 +117,7 @@ class ResponseParser:
         return command, True
 
     @classmethod
-    def parse_action_command(cls, llm_response: str) -> Optional[ActionCommandList]:
+    def parse_action_command(cls, llm_response: str):
         """
         자연어 명령에 대한 LLM 응답을 해석하여 배치 명령어 구문을 반환합니다.
 
@@ -115,7 +125,7 @@ class ResponseParser:
             llm_response(str): LLM으로부터 받은 응답
 
         Returns:
-            Tuple: return_value, is_err_msg
+            Tuple: return_value, is_normal
         """
         try:
             json_block = _extract_json(llm_response)
@@ -129,3 +139,25 @@ class ResponseParser:
             if (result:= _check_command(restrict, command)):
                 return result, False
         return commands, True
+    
+    @classmethod
+    def parse_cation_tag(cls, llm_response: str):
+        """
+        파일에 대한 태그 추천 응답 구조가 적절한지 검사합니다.
+
+        Args:
+            llm_response(str): LLM으로부터 받은 응답
+
+        Returns:
+            Tuple: return_value, is_normal
+        """
+        try:
+            json_block = _extract_json(llm_response)
+            val_data = cls.actiontag_adapter.validate_json(json_block)
+            command = val_data.model_dump()
+        except (ValueError, ValidationError, json.JSONDecodeError) as e:
+            return f"cannot parse llm response: {e}", False
+        
+        if (result:= _check_tag(command)):
+            return result, False
+        return command, True
