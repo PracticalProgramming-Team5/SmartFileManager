@@ -166,8 +166,31 @@ class ContextBuilder:
 
         주의: user 프롬프트는 dict 또는 str 값을 가집니다.
         """
-        _, prompt = self.format_move_prompt(file_path)
-        return self.system_prompt_tag, prompt
+        file_context, details, thumbnail = self._get_file_context(file_path)
+        if file_context == None: return f"fail to get file:{file_path}", None
+
+        content = (
+            f"아래는 사용자가 분류하려는 파일에 대한 정보입니다.\n"\
+            f"[파일 메타데이터]\n{json.dumps(file_context, ensure_ascii=False, indent=2)}\n\n"
+        )
+        user_prompt = None
+        # image file
+        if thumbnail:
+            image_url = encode_image_base64(thumbnail)
+            user_prompt = [
+                {"type": "image_url", "image_url": {"url": image_url}},
+                {"type": "text", "text": content}
+            ]
+        # text file
+        elif details:
+            temp = f"[파일 본문 일부]\n{details}\n\n"
+            user_prompt = temp + content
+        # fallback
+        else:
+            temp = "[파일 정보 없음]\n\n"
+            user_prompt = temp + content
+        
+        return self.system_prompt_tag, user_prompt
 
     def format_move_prompt(self, file_path: str, max_depth: int = 5):
         """
