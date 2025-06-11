@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QObject, QThreadPool, QMetaObject, pyqtSlot
+from PyQt5.QtCore import QObject, QThreadPool, QMetaObject, pyqtSlot, QReadWriteLock
 from event_hub import EventHub, AppEvent, Worker
 
 from settings_manager import SettingsManager
@@ -65,7 +65,7 @@ class FileManagerCore(QObject):
         self.event_hub.undo_requested_from_ui.connect(self.on_undo_requested_from_ui)
         self.event_hub.history_requested_from_ui.connect(self.on_history_requested_from_ui)
 
-
+        self.mutex_history = QReadWriteLock()
     # @pyqtSlot()
     def on_started_from_ui(self):
         print('start')
@@ -134,7 +134,7 @@ class FileManagerCore(QObject):
             else:
                 err, message = True, f"명령어 실행 중 오류가 발생하였습니다. {e}"
             self.event_hub.operation_responded_from_script.emit(err, message)
-        worker = Worker(run_script)
+        worker = Worker(run_script, self.mutex_history, True)
         self.thread_pool.start(worker)
     
     # @pyqtSlot
@@ -163,7 +163,7 @@ class FileManagerCore(QObject):
                 err, message = True, f"명령어 실행 중 오류가 발생하였습니다. {e}"
             self.event_hub.move_responded_from_script.emit(err, message)
 
-        worker = Worker(move)
+        worker = Worker(move, self.mutex_history, True)
         self.thread_pool.start(worker)
 
     # @pyqtSlot
@@ -203,8 +203,8 @@ class FileManagerCore(QObject):
             system_msg, prompt = self.context_builder.format_move_prompt(file_path=path, max_depth=1)
 
             llm_client = LLMClient()
-            msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
-            # msg, e = sample_msg2, LLMErrorCode.SUCCESS
+            # msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
+            msg, e = sample_msg2, LLMErrorCode.SUCCESS
             self.event_hub.suggestion_responded_from_llm.emit(e, msg)
 
         worker = Worker(query)
@@ -236,11 +236,13 @@ class FileManagerCore(QObject):
                 err, msg = True, f"작업 취소중 에러가 발생했습니다: {e}"
             self.event_hub.undo_responded_from_core.emit(err, msg)
             self.event_hub.history_responded_from_core.emit(HistoryManager.get())
-        worker = Worker(undo)
+        worker = Worker(undo, self.mutex_history, True)
         self.thread_pool.start(worker)
 
     def on_history_requested_from_ui(self):
-        self.event_hub.history_responded_from_core.emit(HistoryManager.get())
+        worker = Worker(lambda: self.event_hub.history_responded_from_core.emit(HistoryManager.get()), self.mutex_history)
+        self.thread_pool.start(worker)
+        
         
     def __clear(self):
         pass

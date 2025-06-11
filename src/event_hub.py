@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QRunnable
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QRunnable, QReadWriteLock
 from dataclasses import dataclass
 from llm_client import LLMErrorCode
 
@@ -68,17 +68,31 @@ class EventHub(QObject):
         return cls._initialized
 
 class Worker(QRunnable):
-    def __init__(self, callback=None):
+    def __init__(self, callback=None, mutex: QReadWriteLock = None, write=False):
         super().__init__()
         self.callback = callback
+        self.mutex = mutex
+        self.write = write
 
     # @pyqtSlot()
     def run(self):
+
         try:
             if not self.callback:
                 return
-            
+            if not self.mutex is None:
+                if self.write:
+                    self.mutex.lockForWrite()
+                    print('write')
+                else:
+                    self.mutex.lockForRead()
+                    print('read')
+                
             self.callback()
 
         except Exception as e:
             print("error:", e)
+        finally:
+            if not self.mutex is None:
+                self.mutex.unlock
+
