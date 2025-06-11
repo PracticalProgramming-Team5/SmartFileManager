@@ -101,7 +101,6 @@ class ContentHome(QWidget):
         else:
             self.btn.setText("Run")
             self.btn.setObjectName("BtnRun")
-        print(self.btn.objectName())
         self.btn.style().unpolish(self.btn)
         self.btn.style().polish(self.btn)
 
@@ -111,9 +110,10 @@ class ContentHome(QWidget):
     
     def __send(self):
         if self.state:
-            self.event_hub.event.emit(AppEvent("CoreStop", None))
+            # self.event_hub.event.emit(AppEvent("CoreStop", None))
+            self.event_hub.stopped_from_ui.emit()
         else:
-            self.event_hub.event.emit(AppEvent("CoreRun", None))
+            self.event_hub.started_from_ui.emit()
     # def __set_background_control(self, func):
     #     self.layout.itemAt(1).widget().clicked.connect(func)
         
