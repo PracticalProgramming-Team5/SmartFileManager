@@ -9,6 +9,17 @@ class AppEvent:
 
 class EventHub(QObject):
     event = pyqtSignal(AppEvent)
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(EventHub, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if not hasattr(self, '_initialized'):
+            super().__init__()
+            self._initialized = True
 
 class Worker(QRunnable):
     def __init__(self, callback=None, event_hub=None, name=None):
