@@ -36,6 +36,10 @@ class ScriptExecuter:
         else:
             _, rollback = self.actions[action](source, destination)
 
+        # miner patch: None 들어가면 rollback 실패. 임시로 None 이면 추가 안하도록 수정.
+        if rollback is None:
+            return
+        
         if isinstance(rollback, list) or isinstance(rollback, tuple):
             self.rollback_list.extend(rollback)
         else:
@@ -59,7 +63,12 @@ class ScriptExecuter:
         """
         try:
             _, rollback = FileSystemManager.move(source, destination)
-            self.rollback_list.append(rollback)
+            
+            # 복수 파일 롤백시 롤백 리스트 이중으로 중첩되던 문제.
+            if isinstance(rollback, list) or isinstance(rollback, tuple):
+                self.rollback_list.extend(rollback)
+            else:
+                self.rollback_list.append(rollback)
         except Exception as e:
             return str(e)
         return None
@@ -70,6 +79,7 @@ class ScriptExecuter:
         """
         for cmd in reversed(self.rollback_list):
             try:
+                print(cmd)
                 action = cmd['action']
                 source = self.resolve(cmd['source'])
                 destination = self.resolve(cmd['destination'])

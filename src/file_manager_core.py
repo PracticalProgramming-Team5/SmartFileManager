@@ -7,8 +7,9 @@ from context_builder import ContextBuilder
 from response_parser import ResponseParser
 from directory_monitor import DirectoryMonitor
 from script_excuter import ScriptExecuter
+from history_manager import HistoryManager
 from tagdb import FileTagDB
-
+from time import strftime
 from typing import List
 
 class WrapDirectoryMonitor(QObject):
@@ -61,6 +62,9 @@ class FileManagerCore(QObject):
         self.event_hub.add_monitored.connect(self.on_add_monitored)
         self.event_hub.move_monitored.connect(self.on_move_monitored)
         self.event_hub.del_monitored.connect(self.on_del_monitored)
+        self.event_hub.undo_requested_from_ui.connect(self.on_undo_requested_from_ui)
+        self.event_hub.history_requested_from_ui.connect(self.on_history_requested_from_ui)
+
 
     # @pyqtSlot()
     def on_started_from_ui(self):
@@ -121,6 +125,12 @@ class FileManagerCore(QObject):
             e = script_exe.run_script(action)
             if e is None:
                 err, message = False, "명령어 실행이 완료되었습니다."
+                HistoryManager.log({
+                    "date": strftime('%y.%m.%d-%H:%M'),
+                    "exe": script_exe,
+                    "explanation": explanation
+                })
+                self.event_hub.history_responded_from_core.emit(HistoryManager.get())
             else:
                 err, message = True, f"명령어 실행 중 오류가 발생하였습니다. {e}"
             self.event_hub.operation_responded_from_script.emit(err, message)
@@ -142,6 +152,13 @@ class FileManagerCore(QObject):
             e = script_exe.move(src, dest)
             if e is None:
                 err, message = False, "명령어 실행이 완료되었습니다."
+                list_src ='\n'.join(src)
+                HistoryManager.log({
+                    "date": strftime('%y.%m.%d-%H:%M'),
+                    "exe": script_exe,
+                    "explanation": f"{list_src} \n-> {dest}"
+                })
+                self.event_hub.history_responded_from_core.emit(HistoryManager.get())
             else:
                 err, message = True, f"명령어 실행 중 오류가 발생하였습니다. {e}"
             self.event_hub.move_responded_from_script.emit(err, message)
@@ -205,6 +222,26 @@ class FileManagerCore(QObject):
             return
         self.tag_db.delete_file(file_path=src)
     
+    def on_undo_requested_from_ui(self):
+        def undo():
+            lastest = HistoryManager.peek()
+            if lastest is None:
+                return
+            e = lastest["exe"].rollback()
+            err, msg = False, f"다음 작업이 취소되었습니다: [{lastest['explanation']}]"
+
+            if e is None:
+                HistoryManager.pop()
+            else:
+                err, msg = True, f"작업 취소중 에러가 발생했습니다: {e}"
+            self.event_hub.undo_responded_from_core.emit(err, msg)
+            self.event_hub.history_responded_from_core.emit(HistoryManager.get())
+        worker = Worker(undo)
+        self.thread_pool.start(worker)
+
+    def on_history_requested_from_ui(self):
+        self.event_hub.history_responded_from_core.emit(HistoryManager.get())
+        
     def __clear(self):
         pass
 sample_msg = """```json

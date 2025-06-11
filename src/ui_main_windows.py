@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, 
     QPushButton, QStackedLayout, QButtonGroup,
     QScrollArea, QLineEdit, QFileDialog, QListWidget,
-    QListWidgetItem)
+    QListWidgetItem, QSizePolicy)
 from PyQt5.QtCore import QFile, QTextStream, Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 from event_hub import AppEvent, EventHub
@@ -118,11 +118,30 @@ class ContentHome(QWidget):
     #     self.layout.itemAt(1).widget().clicked.connect(func)
         
 
+class HistoryElement(QWidget):
+    def __init__(self, explanation: str, date: str):
+        super().__init__()
+        self.explanation = explanation
+        self.date = date
+        self.setObjectName("HistoryElement")
+        
+        # self.setMinimumHeight(80)
+        layout = QVBoxLayout(self)
+        self.date = QLabel(date)
+        self.explanation = QLabel(explanation)
+        self.date.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        self.explanation.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        layout.addWidget(self.date)
+        layout.addWidget(self.explanation)
+        
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        layout.addStretch()
+    
 class ContentHistory(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("ContentHistory")
-
+        self.event_hub = EventHub.get_global_instance()
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -133,9 +152,13 @@ class ContentHistory(QWidget):
         self.scroll_area.setWidget(self.content_widget)
         self.content_layout = QVBoxLayout(self.content_widget)
         
+        self.btn_undo = QPushButton("Undo")
+        self.btn_undo.setObjectName("BtnNormal")
+        self.btn_undo.clicked.connect(self.event_hub.undo_requested_from_ui.emit)
+
         self.btn_refresh = QPushButton("Refresh")
         self.btn_refresh.setObjectName("BtnNormal")
-        self.btn_refresh.clicked.connect(self.__update_history)
+        self.btn_refresh.clicked.connect(self.request_update)
         
         self.main_layout = QVBoxLayout(self)
         label = QLabel("History")
@@ -143,83 +166,30 @@ class ContentHistory(QWidget):
 
         self.main_layout.addWidget(label)
         self.main_layout.addWidget(self.scroll_area)
-        self.main_layout.addWidget(self.btn_refresh)
+
+        btn_form = QWidget()
+        layout = QHBoxLayout(btn_form)
+        layout.addWidget(self.btn_undo, stretch=1)
+        layout.addWidget(self.btn_refresh, stretch=3)
+        self.main_layout.addWidget(btn_form)
         
-        self.__update_history()
+    def showEvent(self, event):
+        self.request_update()
+        super().showEvent(event)
 
-    def __update_history(self):
+    def request_update(self):
+        self.event_hub.history_requested_from_ui.emit()
+
+    def update_history(self, history: list):
         self.__clear_layout()
-        history = [ # for test
-            {
-                "id":0,
-                "date":"2025.06.01 13:12",
-                "title":"Delete file A.",
-                "detail":"Lorem Ipsum is simply dummy text of the printing and typesetting industry."
-            },
-            {
-                "id":1,
-                "date":"2025.06.01 13:15",
-                "title":"Delete file A.",
-                "detail":"Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book."
-            },
-            {
-                "id":2,
-                "date":"2025.06.01 13:23",
-                "title":"Delete file A.",
-                "detail":"It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
-            },
-            {
-                "id":4,
-                "date":"2025.06.01 18:01",
-                "title":"Delete file A.",
-                "detail":"Contrary to popular belief, Lorem Ipsum is not simply random text."
-            },
-            {
-                "id":5,
-                "date":"2025.06.01 19:59",
-                "title":"Delete file A.",
-                "detail":"Lorem Ipsum is simply dummy text of the printing and typesetting industry."
-            },
-            {
-                "id":6,
-                "date":"2025.06.02 15:04",
-                "title":"Delete file A.",
-                "detail":"It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source."
-            },
-            {
-                "id":7,
-                "date":"2025.06.02 18:05",
-                "title":"Delete file A.",
-                "detail":"Lorem Ipsum is simply dummy text of the printing and typesetting industry."
-            },
-            {
-                "id":3,
-                "date":"2025.06.02 19:55",
-                "title":"Delete file A.",
-                "detail":"Lorem Ipsum is simply dummy text of the printing and typesetting industry."
-            },
-        ]
-        for job in history:
-            id = job["id"]
-            date = job["date"]
-            title = job["title"]
-            detail = job["detail"]
 
-            widget = QWidget()
-            layout = QVBoxLayout(widget)
+        for action in history:
+            date = action["date"]
+            explanation = action["explanation"]
+            self.content_layout.addWidget(HistoryElement(explanation, date))
+        self.content_layout.addStretch()
 
-            label_title = QLabel(title)
-            label_date = QLabel(date)
-            label_detail = QLabel(detail)
-            
-            label_title.setWordWrap(True)
-            label_date.setWordWrap(True)
-            label_detail.setWordWrap(True)
-
-            layout.addWidget(label_title)
-            layout.addWidget(label_date)
-            layout.addWidget(label_detail)
-            self.content_layout.addWidget(widget)
+        self.update()
 
     def __clear_layout(self):
         while self.content_layout.count():
@@ -557,9 +527,12 @@ class MainWindowContent(QWidget):
         self.layout = QStackedLayout()
 
         self.home = ContentHome()
+        self.history = ContentHistory()
+        self.settings = ContentSettings()
+        
         self.layout.addWidget(self.home)
-        self.layout.addWidget(ContentHistory())
-        self.layout.addWidget(ContentSettings())
+        self.layout.addWidget(self.history)
+        self.layout.addWidget(self.settings)
         
         self.layout.setCurrentIndex(0)
         self.setLayout(self.layout)

@@ -66,6 +66,8 @@ class UIManager(QObject):
         self.event_hub.operation_responded_from_core.connect(self.on_operation_responded_from_core)
         self.event_hub.suggestion_responded_from_core.connect(self.on_suggestion_responded_from_core)
         self.event_hub.suggestion_opperated_from_core.connect(self.on_suggestion_opperated_from_core)
+        self.event_hub.undo_responded_from_core.connect(self.on_undo_responded_from_core)
+        self.event_hub.history_responded_from_core.connect(self.on_history_responded_from_core)
 
         
     def run(self):
@@ -82,6 +84,8 @@ class UIManager(QObject):
     
     # @pyqtSlot
     def on_input_opened(self):
+        if not self.core_state:
+            return
         self.window_instant.display_window()
 
     # @pyqtSlot
@@ -91,20 +95,34 @@ class UIManager(QObject):
     
     # @pyqtSlot
     def on_command_responded_from_core(self, err: bool, actions: List[str], explanation: str):
+        if not self.core_state:
+            return
         self.window_instant.on_llm_response(err, actions, explanation)# 수정
     
     # @pyqtSlot
     def on_operation_responded_from_core(self, err: bool, message: str):
+        if not self.core_state:
+            return
         self.window_instant.on_operation_response(err, message)
 
     # @pyqtSlot
     def on_suggestion_responded_from_core(self, err: bool, src: str, dest: List[str], reason: List[str]):
+        if not self.core_state:
+            return
         self.window_recoomend.on_recommned(err, src, dest, reason)
     
     # @pyqtSlot
     def on_suggestion_opperated_from_core(self, err: bool, message: str):
+        if not self.core_state:
+            return
         print(err, message)
     
+    def on_undo_responded_from_core(self, err: bool, message: str):
+        print(err, message)
+    
+    def on_history_responded_from_core(self, history: list):
+        print(history)
+        self.window_main.window_content.history.update_history(history)
             
 
 

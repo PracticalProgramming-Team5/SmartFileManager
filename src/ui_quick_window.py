@@ -312,6 +312,9 @@ class InstantWindow(QWidget):
                 self.status_widget.set_btn_enabled(False, True)
             else:
                 self.status_widget.set_btn_enabled(True, True)
+                self.status_widget.btn_cancle.setText("undo")
+                self.status_widget.btn_cancle.clicked.connect(self.event_hub.undo_requested_from_ui.emit)
+                self.status_widget.update()
             self.status_widget.set_clicked_action_ok(self.__cancle_response)
             return
         

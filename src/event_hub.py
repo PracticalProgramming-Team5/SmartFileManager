@@ -26,7 +26,10 @@ class EventHub(QObject):
     suggestion_opperated_from_core = pyqtSignal(bool, str) # is_err, Message
 
     history_requested_from_ui = pyqtSignal()
-    history_responded_from_core = pyqtSignal()
+    history_responded_from_core = pyqtSignal(list) # history
+
+    undo_requested_from_ui = pyqtSignal()
+    undo_responded_from_core = pyqtSignal(bool, str)
 
 
     # Core Side Communication Event
