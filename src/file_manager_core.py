@@ -10,9 +10,9 @@ from script_excuter import ScriptExecuter
 from tagdb import FileTagDB
 
 class WrapDirectoryMonitor(QObject):
-    def __init__(self, event_hub):
+    def __init__(self):
         super().__init__()
-        self.event_hub = event_hub
+        self.event_hub = EventHub.get_global_instance()
         def parse_monitor(src, dst, code):
             name, data = "", {}
             if code == 0:
@@ -34,14 +34,14 @@ class WrapDirectoryMonitor(QObject):
 
 
 class FileManagerCore(QObject):
-    def __init__(self, event_hub: EventHub):
+    def __init__(self):
         super().__init__()
-        self.event_hub = event_hub
+        self.event_hub = EventHub.get_global_instance()
         self.event_hub.event.connect(self.__process_event)
         self.runnable = False
         self.tag_db = FileTagDB()
         
-        self.dir_monitor = WrapDirectoryMonitor(event_hub)
+        self.dir_monitor = WrapDirectoryMonitor()
         self.thread_pool = QThreadPool()
 
     def __process_event(self, event: AppEvent):

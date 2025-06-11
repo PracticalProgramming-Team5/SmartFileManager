@@ -337,13 +337,13 @@ class SelectRecommendWindow(QWidget):
         
 
 class RecommendWindow(QWidget):
-    def __init__(self, event_hub: EventHub):
+    def __init__(self):
         super().__init__()
         self.setObjectName("RecommendWindow")
         self.isWinsOs = (platform.system() == "Windows")
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.resize(268, 295)
-        self.event_hub = event_hub
+        self.event_hub = EventHub.get_global_instance()
 
 
         # self.__listener_thread = GlobalHotKeyThread()

@@ -6,7 +6,7 @@ import sys
 from pynput import keyboard
 import platform
 from enum import Enum
-from event_hub import AppEvent
+from event_hub import AppEvent, EventHub
 
 PATH_RESOURCE = "./resource/"
 PATH_STYLE_SHEET = "quick_style.qss"
@@ -203,13 +203,13 @@ class LLMStatusWidget(QWidget):
         self.btn_ok.setEnabled(btn_ok)
         
 class InstantWindow(QWidget):
-    def __init__(self, event_hub):
+    def __init__(self):
         super().__init__()
         self.__state = LifeCycle.TYPING
         self.isWinsOs = (platform.system() == "Windows")
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.event_hub = event_hub
+        self.event_hub = EventHub.get_global_instance()
 
         self.status_widget = None
         # self.__listener_thread = GlobalHotKeyThread()

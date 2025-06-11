@@ -69,9 +69,9 @@ class MainWindowSideBar(QWidget):
         sender.setChecked(True)
 
 class ContentHome(QWidget):
-    def __init__(self, event_hub):
+    def __init__(self):
         super().__init__()
-        self.event_hub = event_hub
+        self.event_hub = EventHub.get_global_instance()
         self.setObjectName("ContentHome")
         self.setProperty("parent", "MainWindowContent")
 
@@ -548,15 +548,15 @@ class ContentSettings(QWidget):
         
     
 class MainWindowContent(QWidget):
-    def __init__(self, event_hub):
+    def __init__(self):
         super().__init__()
-        self.event_hub = event_hub
+        self.event_hub = EventHub.get_global_instance()
         self.setObjectName("MainWindowContent")
         self.setAttribute(Qt.WA_StyledBackground, True)
 
         self.layout = QStackedLayout()
 
-        self.home = ContentHome(event_hub)
+        self.home = ContentHome()
         self.layout.addWidget(self.home)
         self.layout.addWidget(ContentHistory())
         self.layout.addWidget(ContentSettings())
@@ -570,15 +570,15 @@ class MainWindowContent(QWidget):
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, event_hub):
+    def __init__(self):
         super().__init__()
         self.setObjectName("sidebarWidget")
         self.setMinimumSize(WIN_MIN_WIDTH, WIN_MIN_HEIGHT)
         self.setWindowTitle("File Manger")
-        self.event_hub = event_hub
+        self.event_hub = EventHub.get_global_instance()
 
         layout = QHBoxLayout()
-        self.window_content = MainWindowContent(event_hub)
+        self.window_content = MainWindowContent()
         self.window_sidebar = MainWindowSideBar()
         self.window_sidebar.set_clicked_action(self.__update_tab) 
         layout.setContentsMargins(0, 0, 0, 0)

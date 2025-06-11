@@ -6,11 +6,11 @@ from event_hub import EventHub, AppEvent
     이벤트명: key (1:1 매칭이여야함)
 """
 class HotKeyManager(QThread):
-    def __init__(self, event_hub: EventHub):
+    def __init__(self):
         super().__init__()
         self.current_keys = set()
         self.hotkeys = {}
-        self.event_hub = event_hub
+        self.event_hub = EventHub.get_global_instance()
 
     def run(self):
         with keyboard.Listener(on_press=self.__on_press, on_release=self.__on_release) as listener:
