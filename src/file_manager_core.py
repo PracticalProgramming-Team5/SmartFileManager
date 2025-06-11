@@ -66,6 +66,7 @@ class FileManagerCore(QObject):
         self.event_hub.history_requested_from_ui.connect(self.on_history_requested_from_ui)
 
         self.mutex_history = QReadWriteLock()
+        self.mutex_llm = QReadWriteLock()
     # @pyqtSlot()
     def on_started_from_ui(self):
         print('start')
@@ -89,13 +90,13 @@ class FileManagerCore(QObject):
             self.context_builder = ContextBuilder()
             system_msg, prompt = self.context_builder.format_command_prompt(command)
             llm_client = LLMClient()
-            msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
+            # msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
             # print(msg)
-            # msg, e = sample_msg, LLMErrorCode.SUCCESS
+            msg, e = sample_msg, LLMErrorCode.SUCCESS
             
             self.event_hub.command_responded_from_llm.emit(e, msg)
         
-        worker = Worker(query)
+        worker = Worker(query, self.mutex_llm, True)
         self.thread_pool.start(worker)
 
 
@@ -198,6 +199,8 @@ class FileManagerCore(QObject):
     def on_add_monitored(self, path: str):
         if not self.runnable:
             return
+        # if not self.l:
+        #     return
         def query():
             self.context_builder = ContextBuilder()
             system_msg, prompt = self.context_builder.format_move_prompt(file_path=path, max_depth=1)
@@ -206,9 +209,9 @@ class FileManagerCore(QObject):
             # msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
             msg, e = sample_msg2, LLMErrorCode.SUCCESS
             self.event_hub.suggestion_responded_from_llm.emit(e, msg)
-
-        worker = Worker(query)
+        worker = Worker(query, self.mutex_llm, True)
         self.thread_pool.start(worker)
+
 
     # @pyqtSlot
     def on_move_monitored(self, src: str, dst: str):

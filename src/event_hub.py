@@ -94,5 +94,5 @@ class Worker(QRunnable):
             print("error:", e)
         finally:
             if not self.mutex is None:
-                self.mutex.unlock
+                self.mutex.unlock()
 

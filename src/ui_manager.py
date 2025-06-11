@@ -109,7 +109,8 @@ class UIManager(QObject):
     def on_suggestion_responded_from_core(self, err: bool, src: str, dest: List[str], reason: List[str]):
         if not self.core_state:
             return
-        self.window_recoomend.on_recommned(err, src, dest, reason)
+        pass
+        # self.window_recoomend.on_recommned(err, src, dest, reason)
     
     # @pyqtSlot
     def on_suggestion_opperated_from_core(self, err: bool, message: str):

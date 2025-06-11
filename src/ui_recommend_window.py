@@ -374,6 +374,8 @@ class RecommendWindow(QWidget):
         self.layout_main.addWidget(QLabel("📁 File Manager"))
         self.layout_main.addWidget(self.form_stack)
         self.layout_main.addWidget(self.btn_cancle)
+
+        self.event_hub.suggestion_responded_from_core.connect(self.on_recommned)
         
     def __related_selected(self):
         # print("원래 파일:", self.select_recommend_widget.get_current_path())
@@ -395,6 +397,7 @@ class RecommendWindow(QWidget):
 
 
     def on_recommned(self, err: bool, src: str, dest: List[str], reason: List[str]):
+        # print(self.isVisible())
         if not self.isVisible():
             self.select_recommend_widget.set_recommend(src, dest, reason)
             self.layout_stack.setCurrentIndex(0)
@@ -404,7 +407,8 @@ class RecommendWindow(QWidget):
             else:
                 self.select_related_widget.set_path(src, minutes=60)
 
-            QTimer.singleShot(1, self.__display_window)
+            self.__display_window()
+            # pass
 
     def __submit(self):
         pass
@@ -429,7 +433,7 @@ class RecommendWindow(QWidget):
         print("cancle")
         self.hide()
         # set_path
-        self.select_related_widget.set_path('.', minutes=0)
+        # self.select_related_widget.set_path('.', minutes=0)
 
     def __run_operation(self):  
         print("run")
@@ -455,9 +459,10 @@ class RecommendWindow(QWidget):
         self.setStyleSheet(qss_stream.readAll())
         qss_file.close()
 
-    def closeEvent(self, event):
-        QApplication.quit()
-        super().closeEvent(event)
+    # def closeEvent(self, event):
+    #     # QApplication.quit()
+    #     self.hide()
+    #     # super().closeEvent(event)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
