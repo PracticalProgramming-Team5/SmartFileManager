@@ -23,7 +23,12 @@ class ActionCommandList(BaseModel):
     explanation: str
     def __repr__(self):
         return self.model_dump_json(indent=2)
-
+    
+class ActionTag(BaseModel):
+    source: str
+    tags: Tuple[str, ...]
+    def __repr__(self):
+        return self.model_dump_json(indent=2)
 
 EXAMPLE_PAYLOAD = ActionCommandList(
     plan=[
@@ -52,6 +57,11 @@ EXAMPLE_PAYLOAD2 = ActionMove(
         "dest/path2을 추천하는 이유",
         "dest/path3을 추천하는 이유",
     )
+)
+
+EXAMPLE_PAYLOAD3 = ActionTag(
+    source="some/source/path",
+    tags=("tag1", "tag2", "tag3", "etc.")
 )
 
 EXAMPLE_PAYLOAD_ = ActionCommandList(
