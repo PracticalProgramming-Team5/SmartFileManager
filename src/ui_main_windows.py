@@ -319,7 +319,7 @@ class SettingsFormMonitoringDirectory(QWidget):
         self.list_widget.takeItem(row)
     
     def __load_value(self):
-        list_dir_path = SettingsManager.get('available_dirs')
+        list_dir_path = SettingsManager.get('monitoring_dirs')
         for path in list_dir_path:
             self.__add_item(path)
 
