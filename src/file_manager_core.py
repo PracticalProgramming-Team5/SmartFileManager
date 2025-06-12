@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QObject, QThreadPool, QMetaObject, pyqtSlot, QReadWriteLock
 from event_hub import EventHub, AppEvent, Worker
-
+from unicodedata import normalize
+import os
 from settings_manager import SettingsManager
 from llm_client import LLMClient, LLMErrorCode
 from context_builder import ContextBuilder
@@ -80,8 +81,8 @@ class FileManagerCore(QObject):
         self.runnable = True
         self.intersested_commands = SettingsManager.get("interest_commands")
         self.available_commands = SettingsManager.get("available_commands")
-        self.available_dirs = set(SettingsManager.get("available_dirs"))
-        self.monitoring_dirs = set(SettingsManager.get("monitoring_dirs"))
+        self.available_dirs = set(normalize('NFC', dir) for dir in SettingsManager.get("available_dirs"))
+        self.monitoring_dirs = set(normalize('NFC', dir) for dir in SettingsManager.get("monitoring_dirs"))
         self.dir_monitor.start()
         self.event_hub.state_responded_from_core.emit(self.runnable)
 
@@ -243,15 +244,15 @@ class FileManagerCore(QObject):
         def query():
             self.context_builder = ContextBuilder()
             llm_client = LLMClient()
-            if path in self.monitoring_dirs:
+            dir = normalize('NFC', os.path.dirname(path))
+            if dir in self.monitoring_dirs:
                 system_msg, prompt = self.context_builder.format_move_prompt(file_path=path, max_depth=1)
                 event = self.event_hub.suggestion_responded_from_llm
-                print('query')
             else:
                 system_msg, prompt = self.context_builder.format_tag_prompt(file_path=path)
                 event = self.event_hub.tags_responded_from_llm
-            msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
-            # msg, e = sample_msg2, LLMErrorCode.SUCCESS
+            # msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
+            msg, e = sample_msg2, LLMErrorCode.SUCCESS
             # msg, e = sample_msg3, LLMErrorCode.SUCCESS
             event.emit(e, msg)
         worker = Worker(query, self.mutex_llm, True)
