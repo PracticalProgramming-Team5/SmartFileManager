@@ -106,9 +106,10 @@ class FileManagerCore(QObject):
         def query():
             self.context_builder = ContextBuilder()
             system_msg, prompt = self.context_builder.format_command_prompt(command)
+            # print(prompt)
             llm_client = LLMClient()
             msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
-            # print(msg)
+
             # msg, e = sample_msg, LLMErrorCode.SUCCESS
             
             self.event_hub.command_responded_from_llm.emit(e, msg)
@@ -121,7 +122,6 @@ class FileManagerCore(QObject):
         if not self.runnable:
             return
         err, action, explanation, feature = True, [], "", ""
-
         if not e == LLMErrorCode.SUCCESS:
             explanation = f"API 통신중 에러가 발생하였습니다.\n{list(e)}"
         else:
@@ -139,7 +139,6 @@ class FileManagerCore(QObject):
 
             else:
                 explanation = "명령어 해석중 오류가 발생하였습니다."
-        
         self.event_hub.command_responded_from_core.emit(err, action, explanation, feature)
 
     # @pyqtSlot(list, str)
@@ -251,8 +250,8 @@ class FileManagerCore(QObject):
             else:
                 system_msg, prompt = self.context_builder.format_tag_prompt(file_path=path)
                 event = self.event_hub.tags_responded_from_llm
-            # msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
-            msg, e = sample_msg2, LLMErrorCode.SUCCESS
+            msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
+            # msg, e = sample_msg2, LLMErrorCode.SUCCESS
             # msg, e = sample_msg3, LLMErrorCode.SUCCESS
             event.emit(e, msg)
         worker = Worker(query, self.mutex_llm, True)
