@@ -8,6 +8,7 @@ from response_parser import ResponseParser
 from directory_monitor import DirectoryMonitor
 from script_excuter import ScriptExecuter
 from history_manager import HistoryManager
+from filesystem_manager import FileSystemManager
 from tagdb import FileTagDB
 from time import strftime
 from typing import List
@@ -65,19 +66,27 @@ class FileManagerCore(QObject):
         self.event_hub.undo_requested_from_ui.connect(self.on_undo_requested_from_ui)
         self.event_hub.history_requested_from_ui.connect(self.on_history_requested_from_ui)
 
+        self.intersested_commands = []
+        self.available_commands = []
+
         self.mutex_history = QReadWriteLock()
         self.mutex_llm = QReadWriteLock()
     # @pyqtSlot()
     def on_started_from_ui(self):
         print('start')
         self.runnable = True
+        self.intersested_commands = SettingsManager.get("interest_commands")
+        self.available_commands = SettingsManager.get("available_commands")
         self.dir_monitor.start()
         self.event_hub.state_responded_from_core.emit(self.runnable)
+
 
     # @pyqtSlot()
     def on_stopped_from_ui(self):
         print('stop')
         self.runnable = False
+        self.intersested_commands = []
+        self.available_commands = []
         self.dir_monitor.stop()
         self.__clear()
         self.event_hub.state_responded_from_core.emit(self.runnable)
@@ -103,7 +112,7 @@ class FileManagerCore(QObject):
     def on_command_responded_from_llm(self, e: LLMErrorCode, message: str):
         if not self.runnable:
             return
-        err, action, explanation = True, [], ""
+        err, action, explanation, feature = True, [], "", ""
 
         if not e == LLMErrorCode.SUCCESS:
             explanation = f"API 통신중 에러가 발생하였습니다.\n{list(e)}"
@@ -111,11 +120,19 @@ class FileManagerCore(QObject):
             script, success = ResponseParser.parse_action_command(message)
             if success:
                 action, explanation = script['plan'], script['explanation']
+                interst = "\n    -".join([act['action'] for act in action if act['action'] in self.intersested_commands])
+                forbidden = "\n    -".join([act['action'] for act in action if not act['action'] in self.available_commands])
                 err = False
+                if interst:
+                    feature += f"다음의 관심 명령어가 사용되었습니다. \n    -{interst}"
+                if forbidden:
+                    feature += f"다음의 금지 명령어가 사용되었습니다. \n    -{forbidden}"
+                    err = True # 금지 명령어는 안나올 듯.
+
             else:
                 explanation = "명령어 해석중 오류가 발생하였습니다."
         
-        self.event_hub.command_responded_from_core.emit(err, action, explanation)
+        self.event_hub.command_responded_from_core.emit(err, action, explanation, feature)
 
     # @pyqtSlot(list, str)
     def on_operation_requested_from_ui(self, action: list, explanation: str):
@@ -248,7 +265,8 @@ class FileManagerCore(QObject):
         
         
     def __clear(self):
-        pass
+        FileSystemManager.clean_temp()
+
 sample_msg = """```json
 {
   "plan": [

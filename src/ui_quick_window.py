@@ -358,8 +358,8 @@ class InstantWindow(QWidget):
         print("run")
         self.__update_cycle(self.__state, LifeCycle.OPERATING, action=action, explanation=explanation)
 
-    def on_llm_response(self, err: bool, action: List[str], explanation: str):
-        self.__update_cycle(self.__state, LifeCycle.RESPONDED, err=err, action=action, explanation=explanation, feature="")
+    def on_llm_response(self, err: bool, action: List[str], explanation: str, feature: str):
+        self.__update_cycle(self.__state, LifeCycle.RESPONDED, err=err, action=action, explanation=explanation, feature=feature)
     
     def on_operation_response(self, err: bool, message: str):
         print("completed")

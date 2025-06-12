@@ -513,7 +513,7 @@ class ContentSettings(QWidget):
         SettingsManager.set('model_name', self.form_model_name.get_value())
         SettingsManager.set('monitoring_dirs', self.form_monitoring_directory.get_value())
         SettingsManager.set('available_dirs', self.form_allowed_directory.get_value())
-        SettingsManager.set('available_commands', self.form_allowed_method.get_value('허용'))
+        SettingsManager.set('available_commands', self.form_allowed_method.get_value('허용') + self.form_allowed_method.get_value('관심'))
         SettingsManager.set('interest_commands', self.form_allowed_method.get_value('관심'))
         
     

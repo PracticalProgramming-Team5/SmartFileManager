@@ -16,7 +16,7 @@ class EventHub(QObject):
     state_responded_from_core = pyqtSignal(bool)
 
     command_requested_from_ui = pyqtSignal(str) # message
-    command_responded_from_core = pyqtSignal(bool, list, str) # is_err, Actions, Explanation
+    command_responded_from_core = pyqtSignal(bool, list, str, str) # is_err, Actions, Explanation, Feature
 
     operation_requested_from_ui = pyqtSignal(list, str) # Actions, Explanation
     operation_responded_from_core = pyqtSignal(bool, str) # is_err, Message
