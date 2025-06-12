@@ -11,7 +11,7 @@ It organizes file to proper directory and process F/S script from natural langua
 ### Command
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/5C62hx8I6E0/0.jpg)](https://www.youtube.com/watch?v=5C62hx8I6E0)
 
-### Recoomend
+### Recommend
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/lKOekgAn6n0/0.jpg)](https://www.youtube.com/watch?v=lKOekgAn6n0)
 
 ### History & Undo
