@@ -15,7 +15,7 @@ import mimetypes
 from datetime import datetime
 import base64
 from PIL import Image
-
+from util import get_open_explorer_paths
 
 def _get_item_metadata(file_path: str) -> dict:
     """
@@ -53,6 +53,12 @@ def encode_image_base64(image_path: str) -> str:
         mime = "image/jpeg" if image_path.lower().endswith((".jpg", ".jpeg")) else "image/png"
         return f"data:{mime};base64,{encoded}"
 
+def _get_user_wtaching_path() -> str:
+    paths = get_open_explorer_paths()
+    result = ""
+    if paths:
+        result = '\n'.join(paths)
+    return result
 
 class ContextBuilder:
     """
@@ -256,6 +262,7 @@ class ContextBuilder:
         directories = self._get_directory_structure(include_tags=False, max_depth=max_depth)
         user_prompt = (
             f"아래는 사용자가 요청한 파일시스템 관련 작업내용 및 사용 가능한 명령어 리스트입니다.\n\n"
+            f"[사용자가 보고 있는 디렉토리]\n{_get_user_wtaching_path()}\n\n"
             f"[사용자 명령]\n{user_command}\n\n"
             f"[사용자 디렉토리 구조(최대 깊이 {max_depth})]\n{directories}\n\n"
             f"[사용 가능한 명령어 리스트]\n{api_guide}\n\n"

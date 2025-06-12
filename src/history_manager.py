@@ -27,3 +27,8 @@ class HistoryManager:
     @classmethod
     def get(cls) -> list:
         return cls._history
+    
+    @classmethod
+    def pop(cls) -> None:
+        if cls._history:
+            cls._history.pop()

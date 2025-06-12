@@ -6,7 +6,8 @@ import sys
 from pynput import keyboard
 import platform
 from enum import Enum
-from event_hub import AppEvent
+from event_hub import AppEvent, EventHub
+from typing import List
 
 PATH_RESOURCE = "./resource/"
 PATH_STYLE_SHEET = "quick_style.qss"
@@ -203,13 +204,13 @@ class LLMStatusWidget(QWidget):
         self.btn_ok.setEnabled(btn_ok)
         
 class InstantWindow(QWidget):
-    def __init__(self, event_hub):
+    def __init__(self):
         super().__init__()
         self.__state = LifeCycle.TYPING
         self.isWinsOs = (platform.system() == "Windows")
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.event_hub = event_hub
+        self.event_hub = EventHub.get_global_instance()
 
         self.status_widget = None
         # self.__listener_thread = GlobalHotKeyThread()
@@ -254,63 +255,66 @@ class InstantWindow(QWidget):
             self.__add_status_widget()
             QTimer.singleShot(5, lambda: self.input.setEnabled(False))
             self.status_widget.set_btn_enabled(True, False)
-            print(self.input.text())
-            self.event_hub.event.emit(AppEvent("CoreReqCommand", self.input.text()))
+            # print(self.input.text())
+            # self.event_hub.event.emit(AppEvent("CoreReqCommand", self.input.text()))
+            self.event_hub.command_requested_from_ui.emit(self.input.text())
             return
     
         if self.status_widget is None:
             self.__update_cycle(self.__state, LifeCycle.TYPING)
 
         if cur_state == LifeCycle.SUBMITTED and next_state == LifeCycle.RESPONDED:
-            if [param for param in ("data", 'feature') if param not in kwargs]:
+            if [param for param in ("err", "action", "explanation", 'feature') if param not in kwargs]:
                 self.__update_cycle(self.__state, LifeCycle.TYPING)
                 return
-            data = kwargs['data']
+            err = kwargs['err']
+            action = kwargs['action']
+            explanation = kwargs['explanation']
             feature = kwargs['feature']
-
-            message = data['explanation']
-            # if feature:
-            #     print(feature) 
             
-            if data['plan']:
-                self.status_widget.set_message(message)
-                if feature:
-                    QTimer.singleShot(5, lambda: self.status_widget.set_feature(feature))
-                    self.status_widget.show_feature()
-                self.status_widget.set_btn_enabled(True, True)
-                self.status_widget.set_clicked_action_ok(lambda: self.__run_operation(data['plan']))
-            else:
-                self.status_widget.set_message(message)
-                if feature:
-                    self.status_widget.set_feature(feature)
-                    self.status_widget.show_feature()
+            self.status_widget.set_message(explanation)
+            if feature:
+                self.status_widget.set_feature(feature)
+                self.status_widget.show_feature()
+            if err:
                 self.status_widget.set_btn_enabled(False, True)
                 self.status_widget.set_clicked_action_ok(self.__cancle_response)
-            
-
+            else:
+                self.status_widget.set_btn_enabled(True, True)
+                self.status_widget.set_clicked_action_ok(lambda: self.__run_operation(action, explanation))
             return
             
         if cur_state == LifeCycle.RESPONDED and next_state == LifeCycle.OPERATING:
             # self.__dummy_focus.setFocusPolicy(Qt.StrongFocus)
             # self.__dummy_focus.setFocus()
-            if not "script" in kwargs:
+            if [param for param in ("action", "explanation") if param not in kwargs]:
                 self.__update_cycle(self.__state, LifeCycle.TYPING)
                 return
             
+            action = kwargs['action']
+            explanation = kwargs['explanation']
+            
             self.status_widget.set_btn_enabled(False, False)
             self.status_widget.show_result()
-            self.event_hub.event.emit(AppEvent("CoreReqOper", kwargs['script']))
+            self.event_hub.operation_requested_from_ui.emit(action, explanation)
             return
         
         if cur_state == LifeCycle.OPERATING and next_state == LifeCycle.OPERATED:
 
-            if not 'result' in kwargs:
+            if [param for param in ("err", "message") if param not in kwargs]:
                 self.__update_cycle(self.__state, LifeCycle.TYPING)
                 return
-            
-            result = kwargs['result']
-            self.status_widget.set_result(result)
-            self.status_widget.set_btn_enabled(False, True)
+            err = kwargs['err']
+            message = kwargs['message']
+
+            self.status_widget.set_result(message)
+            if err:
+                self.status_widget.set_btn_enabled(False, True)
+            else:
+                self.status_widget.set_btn_enabled(True, True)
+                self.status_widget.btn_cancle.setText("undo")
+                self.status_widget.btn_cancle.clicked.connect(self.event_hub.undo_requested_from_ui.emit)
+                self.status_widget.update()
             self.status_widget.set_clicked_action_ok(self.__cancle_response)
             return
         
@@ -350,18 +354,16 @@ class InstantWindow(QWidget):
         print("cancle")
         self.__update_cycle(self.__state, LifeCycle.TYPING)
 
-    def __run_operation(self, script):  
+    def __run_operation(self, action: List[str], explanation: str):  
         print("run")
-        self.__update_cycle(self.__state, LifeCycle.OPERATING, script=script)
+        self.__update_cycle(self.__state, LifeCycle.OPERATING, action=action, explanation=explanation)
 
-    def on_llm_response(self, data: ActionCommandList):
-        
-        print("on response")
-        self.__update_cycle(self.__state, LifeCycle.RESPONDED, data=data, feature="")
+    def on_llm_response(self, err: bool, action: List[str], explanation: str, feature: str):
+        self.__update_cycle(self.__state, LifeCycle.RESPONDED, err=err, action=action, explanation=explanation, feature=feature)
     
-    def on_operation_response(self, message):
+    def on_operation_response(self, err: bool, message: str):
         print("completed")
-        self.__update_cycle(self.__state, LifeCycle.OPERATED, result=message)
+        self.__update_cycle(self.__state, LifeCycle.OPERATED, err=err, message=message)
 
     def __move_window(self): 
         mouse_pos = QCursor.pos()
@@ -390,7 +392,7 @@ class InstantWindow(QWidget):
         qss_file.close()
 
     def closeEvent(self, event):
-        QApplication.quit()
+        # QApplication.quit()
         super().closeEvent(event)
 
 if __name__ == "__main__":

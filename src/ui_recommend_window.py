@@ -9,6 +9,7 @@ import platform
 from enum import Enum
 import os
 from time import time
+from typing import List
 
 COMBO = {keyboard.Key.shift, keyboard.Key.space} # 팝업 이벤트 핫키
 COMBO2 = {keyboard.Key.cmd, keyboard.Key.shift} # 닫기 이벤트 핫키
@@ -164,12 +165,12 @@ class SelectRelatedFilesWindow(QWidget):
         layout.addWidget(btn)
         self.__clear_all()
 
-        
+    
 
     def check_item_is(self):
         root_index = self.tree.rootIndex()
         row_count = self.proxy.rowCount(root_index)
-        print(row_count)
+        # print(row_count)
         if row_count:
             return
         self.__select_paths()
@@ -228,6 +229,7 @@ class SelectRelatedFilesWindow(QWidget):
         self.__set_path(path, minutes)
 
     def __set_path(self, path, minutes=10):
+        path = os.path.dirname(path)
         self.model.setRootPath(path)
         self.proxy.set_target_path(path, minutes)
         self.proxy.setSourceModel(self.model)
@@ -245,13 +247,14 @@ class SelectRelatedFilesWindow(QWidget):
 
 
 class SelectableItemWidget(QWidget):
-    def __init__(self, path, select_callback):
+    def __init__(self, path, select_callback, reason=None):
         super().__init__()
         self.setObjectName("SelectableItemWidget")
         self.layout = QHBoxLayout(self) 
         self.label = ScrollingLabel(path)
         self.path = path
-
+        if not reason is None:
+            self.label.setToolTip(reason)
         self.select_btn = QPushButton(">")
         self.select_btn.setObjectName("BtnSelectRecommend")
         self.select_btn.setFixedWidth(40)
@@ -296,9 +299,9 @@ class SelectRecommendWindow(QWidget):
 
         self.layout.setContentsMargins(0, 11, 0, 0)
         # self.layout.addWidget(ScrollingLabel("asdasf"))
-    def __add_item(self, path):
+    def __add_item(self, path, reason=None):
         item_widget = QListWidgetItem()
-        widget = SelectableItemWidget(path, self.__select_item)
+        widget = SelectableItemWidget(path, self.__select_item, reason)
         item_widget.setSizeHint(widget.sizeHint())
         self.list_widget.addItem(item_widget)
         self.list_widget.setItemWidget(item_widget, widget)
@@ -316,14 +319,15 @@ class SelectRecommendWindow(QWidget):
     def set_selected_callback(self, func):
         self.selected_callback = func
     
-    def set_recommend(self, recommend: ActionMove):
+    def set_recommend(self, src: str, dest: List[str], reason: List[str]):
         self.__clear_all()
         # filename = recommend.source
-        self.cur_path = recommend['source']
+        self.cur_path = src
         self.name_label.setText(os.path.basename(self.cur_path) + " to ..")
         # recommend.explanation
-        for path in recommend['destination']:
-            self.__add_item(path)
+        
+        for i in range(len(dest)):
+            self.__add_item(dest[i], reason[i])
     
     def get_selected_path(self):
         return self.selected_path
@@ -332,28 +336,20 @@ class SelectRecommendWindow(QWidget):
         
 
 class RecommendWindow(QWidget):
-    def __init__(self, event_hub: EventHub):
+    def __init__(self):
         super().__init__()
         self.setObjectName("RecommendWindow")
         self.isWinsOs = (platform.system() == "Windows")
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.resize(268, 295)
-        self.event_hub = event_hub
+        self.event_hub = EventHub.get_global_instance()
 
-
-        # self.__listener_thread = GlobalHotKeyThread()
-        # self.__listener_thread.hotkey_pressed.connect(self.__display_window)
-        # self.__listener_thread.close_pressed.connect(self.close)
-        # self.__listener_thread.event_recomend.connect(self.__recommned)
-
-        # self.__listener_thread.start()
-        # QApplication.instance().aboutToQuit.connect(self.__listener_thread.quit)
         self.btn_cancle = QPushButton("Cancle")
         self.btn_cancle.setObjectName("CancleBtn")
         self.btn_cancle.clicked.connect(self.__cancle_response)
 
         self.select_recommend_widget = SelectRecommendWindow()
-        self.select_related_widget = SelectRelatedFilesWindow('.')
+        self.select_related_widget = SelectRelatedFilesWindow()
         
         self.select_recommend_widget.set_selected_callback(self.__recommend_selected)
         self.select_related_widget.set_selected_callback(self.__related_selected)
@@ -379,16 +375,18 @@ class RecommendWindow(QWidget):
         self.layout_main.addWidget(self.form_stack)
         self.layout_main.addWidget(self.btn_cancle)
 
-        # self.select_related_widget.set_path('.', minutes=1000)
+        self.event_hub.suggestion_responded_from_core.connect(self.on_recommned)
         
     def __related_selected(self):
         # print("원래 파일:", self.select_recommend_widget.get_current_path())
         # print("도착지:", self.select_recommend_widget.get_selected_path())
         # print("함께 옮길 파일들:", self.select_related_widget.get_selected_path())
-        self.layout_stack.setCurrentIndex(1)
+        # self.layout_stack.setCurrentIndex(1)
+
         src = [self.select_recommend_widget.get_current_path()] + self.select_related_widget.get_selected_path()
         dest = self.select_recommend_widget.get_selected_path()
-        self.event_hub.event.emit(AppEvent("CoreReqMov", (src, dest)))
+
+        self.event_hub.suggestion_accepted_from_ui.emit(src, dest)
         self.__cancle_response()
 
         # 여기에서 함수 호출  
@@ -398,12 +396,19 @@ class RecommendWindow(QWidget):
         self.select_related_widget.check_item_is()
 
 
-    def on_recommned(self, recommend: ActionMove):
+    def on_recommned(self, err: bool, src: str, dest: List[str], reason: List[str]):
+        # print(self.isVisible())
         if not self.isVisible():
-            self.select_recommend_widget.set_recommend(recommend)
-            self.select_related_widget.set_path(recommend['source'], minutes=10)
+            self.select_recommend_widget.set_recommend(src, dest, reason)
             self.layout_stack.setCurrentIndex(0)
-        QTimer.singleShot(1, self.__display_window)
+        
+            if err:
+                self.select_related_widget.set_path(src, minutes=0)
+            else:
+                self.select_related_widget.set_path(src, minutes=60)
+
+            self.__display_window()
+            # pass
 
     def __submit(self):
         pass
@@ -428,7 +433,7 @@ class RecommendWindow(QWidget):
         print("cancle")
         self.hide()
         # set_path
-        self.select_related_widget.set_path('.', minutes=0)
+        # self.select_related_widget.set_path('.', minutes=0)
 
     def __run_operation(self):  
         print("run")
@@ -454,9 +459,10 @@ class RecommendWindow(QWidget):
         self.setStyleSheet(qss_stream.readAll())
         qss_file.close()
 
-    def closeEvent(self, event):
-        QApplication.quit()
-        super().closeEvent(event)
+    # def closeEvent(self, event):
+    #     # QApplication.quit()
+    #     self.hide()
+    #     # super().closeEvent(event)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

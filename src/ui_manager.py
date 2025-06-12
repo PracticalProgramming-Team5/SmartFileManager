@@ -3,12 +3,13 @@ from event_hub import AppEvent, EventHub
 from ui_main_windows import MainWindow
 from ui_quick_window import InstantWindow
 from ui_recommend_window import RecommendWindow
-from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSlot
+from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSlot, QMetaObject
 from PyQt5.QtWidgets import QApplication
 from file_manager_core import FileManagerCore
 from hotkey_manager import HotKeyManager
 import sys
 from pynput import keyboard
+from typing import List
 COMBO = {keyboard.Key.shift, keyboard.Key.space} # 팝업 이벤트 핫키
 """
 이벤트 목록
@@ -43,59 +44,87 @@ class UIManager(QObject):
     def __init__(self):
         super().__init__()
         # self.app = QApplication(sys.argv)
-        self.event_hub = EventHub()
-        self.window_main = MainWindow(self.event_hub)
-        self.window_instant = InstantWindow(self.event_hub)
-        self.window_recoomend = RecommendWindow(self.event_hub)
-        self.backend = FileManagerCore(self.event_hub)
-        self.hotkey = HotKeyManager(self.event_hub)
-        self.hotkey.add("UiOpenInstantWin", COMBO)
+        self.setObjectName("ui")
+        self.event_hub = EventHub.get_global_instance()
+        self.window_main = MainWindow()
+        self.window_instant = InstantWindow()
+        self.window_recoomend = RecommendWindow()
+        self.backend = FileManagerCore()
+        self.hotkey = HotKeyManager()
+        self.hotkey.add(COMBO, self.event_hub.input_opened.emit)
         self.hotkey.start()
         QApplication.instance().aboutToQuit.connect(self.hotkey.quit)
         self.backend_thread = QThread()
         self.backend.moveToThread(self.backend_thread)
-        self.event_hub.event.connect(self.__process_event)
         self.core_state = False
-        print(self.event_hub)
+
+        QMetaObject.connectSlotsByName(self)
+        self.event_hub.window_opened.connect(self.on_window_opened)
+        self.event_hub.input_opened.connect(self.on_input_opened)
+        self.event_hub.state_responded_from_core.connect(self.on_state_responded_from_core)
+        self.event_hub.command_responded_from_core.connect(self.on_command_responded_from_core)
+        self.event_hub.operation_responded_from_core.connect(self.on_operation_responded_from_core)
+        self.event_hub.suggestion_responded_from_core.connect(self.on_suggestion_responded_from_core)
+        self.event_hub.suggestion_opperated_from_core.connect(self.on_suggestion_opperated_from_core)
+        self.event_hub.undo_responded_from_core.connect(self.on_undo_responded_from_core)
+        self.event_hub.history_responded_from_core.connect(self.on_history_responded_from_core)
+
+        
     def run(self):
         """
         UI 시작
         """
-        self.event_hub.event.emit(AppEvent("UiOpenMainWin", None))
+        self.event_hub.window_opened.emit()
+        print("run")
         # self.event_hub.event.emit(AppEvent("CoreRun", None))
+
+    @pyqtSlot()
+    def on_window_opened(self):
+        self.window_main.show()
     
-    # @pyqtSlot(object)
-    def __process_event(self, event: AppEvent):
-        print("front:", event.name)
-        if event.name == "UiOpenMainWin": # 메인 윈도우 열기
-            QTimer.singleShot(100, self.window_main.show)
-        elif event.name == "UiCloseMainWin": # 메인 윈도우 닫기
-            self.window_main.hide()
-        elif self.core_state and event.name == "UiOpenInstantWin": # 인풋 윈도우 열기
-            self.window_instant.display_window()
-        # elif event.name == "UiCloseInstantWin": # 인풋 윈도우 닫기
-        #     self.window_instant.hide()
-        elif self.core_state and event.name == "UiOpenRecommendWin": # 추천 윈도우 열기
-            self.window_recoomend.show()
-        # elif event.name == "UiCloseRecommendWin": # 추천 윈도우 닫기
-        #     self.window_recoomend.hide()
+    # @pyqtSlot
+    def on_input_opened(self):
+        if not self.core_state:
+            return
+        self.window_instant.display_window()
 
+    # @pyqtSlot
+    def on_state_responded_from_core(self, state: bool):
+        self.core_state = state # 싱크 안맞을 가능성이  있긴함.
+        self.window_main.toggle(self.core_state) # 구현
+    
+    # @pyqtSlot
+    def on_command_responded_from_core(self, err: bool, actions: List[str], explanation: str, feature: str):
+        if not self.core_state:
+            return
+        self.window_instant.on_llm_response(err, actions, explanation, feature)# 수정
+    
+    # @pyqtSlot
+    def on_operation_responded_from_core(self, err: bool, message: str):
+        if not self.core_state:
+            return
+        self.window_instant.on_operation_response(err, message)
 
-
-        elif event.name == "UiResCoreState": # 코어 상태 업데이트(T/F)
-            self.core_state = event.data # 싱크 안맞을 가능성이  있긴함.
-            self.window_main.toggle(self.core_state)
-        elif event.name == "UiResHistory": # 히스토리 결과 도착
-            pass
-        elif event.name == "UiResCommand": # 커맨드 요청에 대한 LLM 응답
-            self.window_instant.on_llm_response(data=event.data)
-        elif event.name == "UiResOper": # 커맨드 수행 요청에 대한 결과 도착
-            message = "수행 완료." if event.data is None else event.data
-            self.window_instant.on_operation_response(message=message)
-        elif event.name == "UiAddFile": # 파일 제안 이벤트 도착
-            self.window_recoomend.on_recommned(recommend=event.data)
-        elif event.name == "UiResFile": # 파일 제안 수락 결과
-            print(event.data)
+    # @pyqtSlot
+    def on_suggestion_responded_from_core(self, err: bool, src: str, dest: List[str], reason: List[str]):
+        if not self.core_state:
+            return
+        pass
+        # self.window_recoomend.on_recommned(err, src, dest, reason)
+    
+    # @pyqtSlot
+    def on_suggestion_opperated_from_core(self, err: bool, message: str):
+        if not self.core_state:
+            return
+        print(err, message)
+    
+    def on_undo_responded_from_core(self, err: bool, message: str):
+        print(err, message)
+    
+    def on_history_responded_from_core(self, history: list):
+        print(history)
+        self.window_main.window_content.history.update_history(history)
+            
 
 
 
@@ -115,9 +144,14 @@ class UIManager(QObject):
     CoreReqCommand: command 제출
 """
 if __name__ == "__main__":
-
+    # print("hello")
     app = QApplication(sys.argv)
+
+    # print("app")
     ui = UIManager()
+
+    # print("ui")
     ui.run()
+    # print("run")
 
     sys.exit(app.exec_())
