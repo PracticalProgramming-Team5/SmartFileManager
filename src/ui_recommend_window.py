@@ -170,7 +170,7 @@ class SelectRelatedFilesWindow(QWidget):
     def check_item_is(self):
         root_index = self.tree.rootIndex()
         row_count = self.proxy.rowCount(root_index)
-        print(row_count)
+        # print(row_count)
         if row_count:
             return
         self.__select_paths()

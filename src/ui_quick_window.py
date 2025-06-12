@@ -255,7 +255,7 @@ class InstantWindow(QWidget):
             self.__add_status_widget()
             QTimer.singleShot(5, lambda: self.input.setEnabled(False))
             self.status_widget.set_btn_enabled(True, False)
-            print(self.input.text())
+            # print(self.input.text())
             # self.event_hub.event.emit(AppEvent("CoreReqCommand", self.input.text()))
             self.event_hub.command_requested_from_ui.emit(self.input.text())
             return
@@ -392,7 +392,7 @@ class InstantWindow(QWidget):
         qss_file.close()
 
     def closeEvent(self, event):
-        QApplication.quit()
+        # QApplication.quit()
         super().closeEvent(event)
 
 if __name__ == "__main__":

@@ -62,7 +62,7 @@ class UIManager(QObject):
         self.event_hub.window_opened.connect(self.on_window_opened)
         self.event_hub.input_opened.connect(self.on_input_opened)
         self.event_hub.state_responded_from_core.connect(self.on_state_responded_from_core)
-        # self.event_hub.command_responded_from_core.connect(self.on_command_responded_from_core)
+        self.event_hub.command_responded_from_core.connect(self.on_command_responded_from_core)
         self.event_hub.operation_responded_from_core.connect(self.on_operation_responded_from_core)
         self.event_hub.suggestion_responded_from_core.connect(self.on_suggestion_responded_from_core)
         self.event_hub.suggestion_opperated_from_core.connect(self.on_suggestion_opperated_from_core)
@@ -97,7 +97,7 @@ class UIManager(QObject):
     def on_command_responded_from_core(self, err: bool, actions: List[str], explanation: str, feature: str):
         if not self.core_state:
             return
-        # self.window_instant.on_llm_response(err, actions, explanation, feature)# 수정
+        self.window_instant.on_llm_response(err, actions, explanation, feature)# 수정
     
     # @pyqtSlot
     def on_operation_responded_from_core(self, err: bool, message: str):
