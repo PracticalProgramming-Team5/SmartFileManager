@@ -65,18 +65,23 @@ class FileManagerCore(QObject):
         self.event_hub.del_monitored.connect(self.on_del_monitored)
         self.event_hub.undo_requested_from_ui.connect(self.on_undo_requested_from_ui)
         self.event_hub.history_requested_from_ui.connect(self.on_history_requested_from_ui)
+        self.event_hub.tags_responded_from_llm.connect(self.on_tags_responded_from_llm)
 
         self.intersested_commands = []
         self.available_commands = []
-
+        self.available_dirs = set()
+        self.monitoring_dirs = set()
         self.mutex_history = QReadWriteLock()
         self.mutex_llm = QReadWriteLock()
+
     # @pyqtSlot()
     def on_started_from_ui(self):
         print('start')
         self.runnable = True
         self.intersested_commands = SettingsManager.get("interest_commands")
         self.available_commands = SettingsManager.get("available_commands")
+        self.available_dirs = set(SettingsManager.get("available_dirs"))
+        self.monitoring_dirs = set(SettingsManager.get("monitoring_dirs"))
         self.dir_monitor.start()
         self.event_hub.state_responded_from_core.emit(self.runnable)
 
@@ -87,6 +92,8 @@ class FileManagerCore(QObject):
         self.runnable = False
         self.intersested_commands = []
         self.available_commands = []
+        self.available_dirs = set()
+        self.monitoring_dirs = set()
         self.dir_monitor.stop()
         self.__clear()
         self.event_hub.state_responded_from_core.emit(self.runnable)
@@ -99,9 +106,9 @@ class FileManagerCore(QObject):
             self.context_builder = ContextBuilder()
             system_msg, prompt = self.context_builder.format_command_prompt(command)
             llm_client = LLMClient()
-            # msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
+            msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
             # print(msg)
-            msg, e = sample_msg, LLMErrorCode.SUCCESS
+            # msg, e = sample_msg, LLMErrorCode.SUCCESS
             
             self.event_hub.command_responded_from_llm.emit(e, msg)
         
@@ -212,20 +219,41 @@ class FileManagerCore(QObject):
                 src = "파일 이동 실패."
         self.event_hub.suggestion_responded_from_core.emit(err, src, recommend, reason)
     
+    def on_tags_responded_from_llm(self, e: LLMErrorCode, message: str):
+        if not self.runnable:
+            return
+
+        if not e == LLMErrorCode.SUCCESS:
+            src = f"API 통신중 에러가 발생하였습니다.\n{list(e)}"
+        else:
+            res, success = ResponseParser.parse_cation_tag(message)
+
+            if success:
+                src = res['source']
+                tags = res['tags']
+                print(tags)
+                self.tag_db.add_file(file_path=src, tags=tags)
+        
+    
     # @pyqtSlot
     def on_add_monitored(self, path: str):
         if not self.runnable:
             return
-        # if not self.l:
-        #     return
+        
         def query():
             self.context_builder = ContextBuilder()
-            system_msg, prompt = self.context_builder.format_move_prompt(file_path=path, max_depth=1)
-
             llm_client = LLMClient()
-            # msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
-            msg, e = sample_msg2, LLMErrorCode.SUCCESS
-            self.event_hub.suggestion_responded_from_llm.emit(e, msg)
+            if path in self.monitoring_dirs:
+                system_msg, prompt = self.context_builder.format_move_prompt(file_path=path, max_depth=1)
+                event = self.event_hub.suggestion_responded_from_llm
+                print('query')
+            else:
+                system_msg, prompt = self.context_builder.format_tag_prompt(file_path=path)
+                event = self.event_hub.tags_responded_from_llm
+            msg, e = llm_client.query(system_msg = system_msg, prompt = prompt)
+            # msg, e = sample_msg2, LLMErrorCode.SUCCESS
+            # msg, e = sample_msg3, LLMErrorCode.SUCCESS
+            event.emit(e, msg)
         worker = Worker(query, self.mutex_llm, True)
         self.thread_pool.start(worker)
 
@@ -234,13 +262,15 @@ class FileManagerCore(QObject):
     def on_move_monitored(self, src: str, dst: str):
         if not self.runnable:
             return
-        self.tag_db.rename_file(old_path=src, new_path=dst)
+        if src in self.available_dirs and dst in self.available_dirs:
+            self.tag_db.rename_file(old_path=src, new_path=dst)
 
     # @pyqtSlot
     def on_del_monitored(self, src: str):
         if not self.runnable:
             return
-        self.tag_db.delete_file(file_path=src)
+        if src in self.available_dirs:
+            self.tag_db.delete_file(file_path=src)
     
     def on_undo_requested_from_ui(self):
         def undo():
@@ -317,6 +347,24 @@ sample_msg2 = """```json
     "/Users/ssw/Documents/test/학교 수업/실전코딩을 추천하는 이유: 데이터프로그래밍과 관련된 발표 자료로 실전코딩 수업과 관련이 깊습니다.",
     "/Users/ssw/Documents/test/학교 수업/네트워크를 추천하는 이유: 데이터와 네트워크 관련 수업 자료로 활용될 수 있습니다.",
     "/Users/ssw/Documents/test/학교 수업/운영체제를 추천하는 이유: 운영체제 수업에서도 데이터프로그래밍 관련 발표 자료가 유용할 수 있습니다."
+  ]
+}
+```"""
+
+sample_msg3 = """```json
+{
+  "source": "/Users/ssw/Documents/test/다운로드/데이터프로그래밍발표 (3) copy 24.pdf",
+  "tags": [
+    "데이터프로그래밍",
+    "발표자료",
+    "학생명단",
+    "학번",
+    "PDF",
+    "2025년",
+    "교육자료",
+    "프로그래밍",
+    "발표",
+    "학사정보"
   ]
 }
 ```"""

@@ -34,8 +34,8 @@ class EventHub(QObject):
 
     # Core Side Communication Event
     command_responded_from_llm = pyqtSignal(LLMErrorCode, str) # is_err, Response Message
-    suggestion_responded_from_llm = pyqtSignal(LLMErrorCode, str) # Src path, Recommended paths, Reasons 
-    tag_responded_from_llm = pyqtSignal()
+    suggestion_responded_from_llm = pyqtSignal(LLMErrorCode, str) # Errior code, Response text
+    tags_responded_from_llm = pyqtSignal(LLMErrorCode, str) # Errior code, Response text
 
     operation_responded_from_script = pyqtSignal(bool, str) # is_err, Message
     move_responded_from_script = pyqtSignal(bool, str) # is_err, Message
