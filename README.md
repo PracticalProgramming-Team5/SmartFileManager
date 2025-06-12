@@ -7,14 +7,19 @@ LLM-based File organizer
 Smart Filemanager is LLM-based file System assistent.
 
 It organizes file to proper directory and process F/S script from natural language.
-### Settings
-<img width="500" alt="image" src="https://github.com/user-attachments/assets/bfedd7cd-5a37-477c-9a4c-3446dd8086af" />
-
-### Recommend
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/CNDRbmYhcEg/0.jpg)](https://www.youtube.com/watch?v=CNDRbmYhcEg)
 
 ### Command
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/KEpSlWY-fpk/0.jpg)](https://www.youtube.com/watch?v=KEpSlWY-fpk)
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/5C62hx8I6E0/0.jpg)](https://www.youtube.com/watch?v=5C62hx8I6E0)
+
+### Recoomend
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/lKOekgAn6n0/0.jpg)](https://www.youtube.com/watch?v=lKOekgAn6n0)
+
+### History & Undo
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/B54KSBr0ui8/0.jpg)](https://www.youtube.com/watch?v=B54KSBr0ui8)
+
+### Settings
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/xS-5k6kStEs/0.jpg)](https://www.youtube.com/watch?v=xS-5k6kStEs)
+
 ## Members
 | Name | Role | 
 | ------ | ------ |
@@ -28,6 +33,8 @@ This project is python-based program. The main modules are as follows:
 - PyQt5
 - watchdog
 - openai
+
+This program has been tested on both macOS and Windows.
 
 ## Installation
 ### Prerequisites
