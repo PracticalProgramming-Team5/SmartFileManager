@@ -23,10 +23,10 @@ It organizes file to proper directory and process F/S script from natural langua
 ## Members
 | Name | Role | 
 | ------ | ------ |
-| 주현수 | Team leader | 
-| 신승원 | Team member | 
-| 조영우 | Team member | 
-| 최정필 | Team member | 
+| amature0000 | Team leader | 
+| SpicyKong | Team member | 
+| youngwoocho02 | Team member | 
+| wjdvlf5456 | Team member | 
 
 ## Requirements
 This project is python-based program. The main modules are as follows:
@@ -39,7 +39,6 @@ This program has been tested on both macOS and Windows.
 ## Installation
 ### Prerequisites
 - Python > 3.9
-- Windows 10/11 
 
 ### Install the dependencies
 
